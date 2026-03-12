@@ -18,16 +18,27 @@ app.use(express.json());
 const adminUser = (process.env.ADMIN_USER || 'admin').replace(/['"]/g, '').trim();
 const adminPass = (process.env.ADMIN_PASS || 'password').replace(/['"]/g, '').trim();
 
-const users = {};
-users[adminUser] = adminPass;
+console.log(`[Auth] Initializing with user: "${adminUser}"`);
 
-console.log(`[Auth] Configuring access for user: "${adminUser}"`);
+// Manual Basic Auth Middleware for better reliability on Railway
+app.use((req, res, next) => {
+    const auth = req.headers.authorization;
+    if (!auth) {
+        res.setHeader('WWW-Authenticate', 'Basic realm="Veroix Analytics Central"');
+        return res.status(401).send('Authentication required');
+    }
 
-app.use(basicAuth({
-    users,
-    challenge: true,
-    realm: 'Veroix Analytics Central'
-}));
+    const credentials = Buffer.from(auth.split(' ')[1], 'base64').toString().split(':');
+    const [u, p] = credentials;
+
+    if (u === adminUser && p === adminPass) {
+        return next();
+    }
+
+    res.setHeader('WWW-Authenticate', 'Basic realm="Veroix Analytics Central"');
+    res.status(401).send('Invalid credentials');
+});
+
 
 
 const dbConfigs = [

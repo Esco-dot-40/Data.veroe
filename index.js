@@ -15,14 +15,20 @@ app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors());
 app.use(express.json());
 
+const adminUser = (process.env.ADMIN_USER || 'admin').replace(/['"]/g, '').trim();
+const adminPass = (process.env.ADMIN_PASS || 'password').replace(/['"]/g, '').trim();
+
 const users = {};
-users[process.env.ADMIN_USER || 'admin'] = process.env.ADMIN_PASS || 'password';
+users[adminUser] = adminPass;
+
+console.log(`[Auth] Configuring access for user: "${adminUser}"`);
 
 app.use(basicAuth({
     users,
     challenge: true,
-    realm: 'Analytics Dashboard'
+    realm: 'Veroix Analytics Central'
 }));
+
 
 const dbConfigs = [
     { name: 'domain-hub', envKey: 'DB_DOMAIN_HUB_URL' },

@@ -76,13 +76,12 @@ app.get('/api/stats', async (req, res) => {
         }
     }));
 
+    const aggregated = getStats();
     const combined = health.map(h => {
         const aggr = aggregated[h.name] || {};
         return {
             ...h,
             ...aggr,
-            // Keep 'Online' status from health check if connected, 
-            // but use aggregator's status if it has more specific info
             status: h.status === 'Online' ? (aggr.status || 'Online') : h.status
         };
     });

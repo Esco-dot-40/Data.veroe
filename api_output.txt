@@ -1,0 +1,64 @@
+[
+  {
+    "name": "domain-hub",
+    "status": "Connected",
+    "latency": "2517ms",
+    "tables": [
+      "visitor_logs",
+      "geo_blocks"
+    ],
+    "totalVisits": 22,
+    "blockedVisits": 0,
+    "lastVisit": "2026-03-12T06:41:49.686Z",
+    "metrics": {}
+  },
+  {
+    "name": "farkle-staging",
+    "status": "Online",
+    "latency": "2516ms"
+  },
+  {
+    "name": "link.veroe.space",
+    "status": "Connected",
+    "latency": "2517ms",
+    "tables": [
+      "pixel_hits",
+      "campaigns"
+    ],
+    "totalVisits": 2,
+    "blockedVisits": 0,
+    "lastVisit": "2026-01-23T18:28:39.205Z",
+    "metrics": {}
+  },
+  {
+    "name": "nexus-creative-tech",
+    "status": "Connected",
+    "latency": "2516ms",
+    "tables": [
+      "analytics_events"
+    ],
+    "totalVisits": 133,
+    "blockedVisits": 0,
+    "lastVisit": "2026-02-16T09:34:58.191Z",
+    "metrics": {
+      "unique_ips": 35
+    }
+  },
+  {
+    "name": "spelling-bee",
+    "status": "Connected",
+    "latency": "2515ms",
+    "tables": [
+      "users",
+      "games",
+      "stats",
+      "visitor_logs"
+    ],
+    "totalVisits": 508,
+    "blockedVisits": 0,
+    "lastVisit": "2026-03-01T11:21:52.455Z",
+    "metrics": {
+      "games_played": 508
+    }
+  }
+]

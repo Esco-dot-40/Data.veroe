@@ -25,18 +25,18 @@ async function runAggregator() {
         try {
             const tablesRes = await pool.query(`SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'`);
             const tables = tablesRes.rows.map(r => r.table_name);
-            
-            let sourceData = { 
-                name: source.name, 
-                tables, 
-                totalVisits: 0, 
-                blockedVisits: 0, 
+
+            let sourceData = {
+                name: source.name,
+                tables,
+                totalVisits: 0,
+                blockedVisits: 0,
                 lastVisit: null,
-                metrics: {}, 
+                metrics: {},
                 status: 'Connected'
             };
 
-            // 1. NEXUS / VEROIX Style (page_accesses)
+            // 1. NEXUS / VEROIX Style (page_accesses or analytics_events)
             if (tables.includes('page_accesses')) {
                 const res = await pool.query(`
                     SELECT 
@@ -50,20 +50,32 @@ async function runAggregator() {
                 sourceData.blockedVisits = parseInt(res.rows[0].blocked) || 0;
                 sourceData.lastVisit = res.rows[0].last;
                 sourceData.metrics.unique_ips = parseInt(res.rows[0].unique_ips);
-            } 
-            
+            }
+            else if (tables.includes('analytics_events')) {
+                const res = await pool.query(`
+                    SELECT 
+                        COUNT(*) as total, 
+                        MAX(timestamp) as last,
+                        COUNT(DISTINCT query) as unique_ips
+                    FROM analytics_events
+                `);
+                sourceData.totalVisits = parseInt(res.rows[0].total) || 0;
+                sourceData.lastVisit = res.rows[0].last;
+                sourceData.metrics.unique_ips = parseInt(res.rows[0].unique_ips);
+            }
+
             // 2. DISCORD / NYT Style (visitor_logs)
             else if (tables.includes('visitor_logs')) {
                 const res = await pool.query('SELECT COUNT(*) as total, MAX(timestamp) as last FROM visitor_logs');
                 sourceData.totalVisits = parseInt(res.rows[0].total) || 0;
                 sourceData.lastVisit = res.rows[0].last;
-                
+
                 // Try to get specific stats if it's the NYT app
                 if (tables.includes('games')) {
                     const gameRes = await pool.query('SELECT COUNT(*) as games FROM games');
                     sourceData.metrics.games_played = parseInt(gameRes.rows[0].games);
                 }
-            } 
+            }
 
             // 3. PIXEL / TRACKER Style (pixel_hits)
             else if (tables.includes('pixel_hits')) {
@@ -72,11 +84,28 @@ async function runAggregator() {
                 sourceData.lastVisit = res.rows[0].last;
             }
 
-            // 4. Fallback for Static Stats (user_stats)
-            if (tables.includes('user_stats') && sourceData.totalVisits === 0) {
-                const res = await pool.query('SELECT SUM(games_played) as total, MAX(last_played_date) as last FROM user_stats');
-                sourceData.totalVisits = parseInt(res.rows[0].total) || 0;
-                sourceData.lastVisit = res.rows[0].last;
+            // 4. Fallback for Static Stats (user_stats or users)
+            if (sourceData.totalVisits === 0) {
+                try {
+                    if (tables.includes('user_stats')) {
+                        const res = await pool.query('SELECT SUM(games_played) as total FROM user_stats');
+                        sourceData.totalVisits = parseInt(res.rows[0].total) || 0;
+                        
+                        // Optional: Try to get last played date if column exists
+                        const colRes = await pool.query(`SELECT column_name FROM information_schema.columns WHERE table_name = 'user_stats' AND column_name = 'last_played_date'`);
+                        if (colRes.rows.length > 0) {
+                            const lastRes = await pool.query('SELECT MAX(last_played_date) as last FROM user_stats');
+                            sourceData.lastVisit = lastRes.rows[0].last;
+                        }
+                    } 
+                    
+                    if (sourceData.totalVisits === 0 && tables.includes('users')) {
+                        const res = await pool.query('SELECT COUNT(*) as total FROM users');
+                        sourceData.totalVisits = parseInt(res.rows[0].total) || 0;
+                    }
+                } catch (fallbackErr) {
+                    console.warn(`  Fallback failed for ${source.name}: ${fallbackErr.message}`);
+                }
             }
 
             // Validation: If no data found but connection OK, mark as "Idle"

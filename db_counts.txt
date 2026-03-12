@@ -1,0 +1,22 @@
+[dotenv@17.3.1] injecting env (9) from .env -- tip: ΓÜÖ∩╕Å  suppress all logs with { quiet: true }
+Checking domain-hub...
+  Tables: visitor_logs, geo_blocks
+  - visitor_logs: 22
+  - geo_blocks: 1
+Checking farkle-staging...
+  Tables: users, user_stats
+  - users: 7
+  - user_stats: 0
+Checking link.veroe.space...
+  Tables: pixel_hits, campaigns
+  - pixel_hits: 2
+  - campaigns: 1
+Checking nexus-creative-tech...
+  Tables: analytics_events
+  - analytics_events: 133
+Checking spelling-bee...
+  Tables: users, games, stats, visitor_logs
+  - users: 655
+  - games: 508
+  - stats: 365
+  - visitor_logs: 118

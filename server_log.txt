@@ -1,0 +1,81 @@
+[dotenv@17.3.1] injecting env (9) from .env -- tip: ΓÜÖ∩╕Å  specify custom .env file path with { path: '/custom/path/.env' }
+[dotenv@17.3.1] injecting env (0) from .env -- tip: ≡ƒ¢í∩╕Å auth for agents: https://vestauth.com
+[Auth] Initializing with user: "admin"
+Γ£à Initialized pool for domain-hub
+Γ£à Initialized pool for farkle-staging
+Γ£à Initialized pool for link.veroe.space
+Γ£à Initialized pool for nexus-creative-tech
+Γ£à Initialized pool for spelling-bee
+≡ƒÜÇ Analytics Central running on port 3000
+[2026-03-12T19:57:01.428Z] Aggregating stats from 5 sources...
+Γ£à Aggregated domain-hub: 22 visits
+Γ¥î farkle-staging aggregation failed: column "last_played_date" does not exist
+Γ£à Aggregated link.veroe.space: 2 visits
+Γ£à Aggregated nexus-creative-tech: 133 visits
+Γ£à Aggregated spelling-bee: 508 visits
+[2026-03-12T20:00:00.011Z] Aggregating stats from 5 sources...
+Γ£à Aggregated domain-hub: 22 visits
+Γ¥î farkle-staging aggregation failed: column "last_played_date" does not exist
+Γ£à Aggregated link.veroe.space: 2 visits
+Γ£à Aggregated nexus-creative-tech: 133 visits
+Γ£à Aggregated spelling-bee: 508 visits
+[2026-03-12T20:15:00.007Z] Aggregating stats from 5 sources...
+Γ¥î domain-hub aggregation failed: connect ECONNABORTED 66.33.22.240:55212
+Γ¥î farkle-staging aggregation failed: getaddrinfo ENOTFOUND gondola.proxy.rlwy.net
+Γ¥î link.veroe.space aggregation failed: getaddrinfo ENOTFOUND switchback.proxy.rlwy.net
+Γ¥î nexus-creative-tech aggregation failed: getaddrinfo ENOTFOUND interchange.proxy.rlwy.net
+Γ¥î spelling-bee aggregation failed: getaddrinfo ENOTFOUND crossover.proxy.rlwy.net
+[2026-03-12T20:30:00.006Z] Aggregating stats from 5 sources...
+Γ¥î domain-hub aggregation failed: getaddrinfo ENOTFOUND shuttle.proxy.rlwy.net
+Γ¥î farkle-staging aggregation failed: getaddrinfo ENOTFOUND gondola.proxy.rlwy.net
+Γ¥î link.veroe.space aggregation failed: getaddrinfo ENOTFOUND switchback.proxy.rlwy.net
+Γ¥î nexus-creative-tech aggregation failed: getaddrinfo ENOTFOUND interchange.proxy.rlwy.net
+Γ¥î spelling-bee aggregation failed: getaddrinfo ENOTFOUND crossover.proxy.rlwy.net
+[2026-03-12T20:45:00.008Z] Aggregating stats from 5 sources...
+Γ£à Aggregated domain-hub: 22 visits
+Γ¥î farkle-staging aggregation failed: column "last_played_date" does not exist
+Γ£à Aggregated link.veroe.space: 2 visits
+Γ£à Aggregated nexus-creative-tech: 133 visits
+Γ£à Aggregated spelling-bee: 508 visits
+[2026-03-12T21:00:00.006Z] Aggregating stats from 5 sources...
+Γ£à Aggregated domain-hub: 22 visits
+Γ¥î farkle-staging aggregation failed: column "last_played_date" does not exist
+Γ£à Aggregated link.veroe.space: 2 visits
+Γ£à Aggregated nexus-creative-tech: 133 visits
+Γ£à Aggregated spelling-bee: 508 visits
+[2026-03-12T21:15:00.007Z] Aggregating stats from 5 sources...
+Γ£à Aggregated domain-hub: 22 visits
+Γ¥î farkle-staging aggregation failed: column "last_played_date" does not exist
+Γ£à Aggregated link.veroe.space: 2 visits
+Γ£à Aggregated nexus-creative-tech: 133 visits
+Γ£à Aggregated spelling-bee: 508 visits
+[2026-03-12T21:30:00.007Z] Aggregating stats from 5 sources...
+Γ£à Aggregated domain-hub: 22 visits
+Γ¥î farkle-staging aggregation failed: column "last_played_date" does not exist
+Γ£à Aggregated link.veroe.space: 2 visits
+Γ£à Aggregated nexus-creative-tech: 133 visits
+Γ£à Aggregated spelling-bee: 508 visits
+[2026-03-12T21:45:00.010Z] Aggregating stats from 5 sources...
+Γ£à Aggregated domain-hub: 22 visits
+Γ¥î farkle-staging aggregation failed: column "last_played_date" does not exist
+Γ£à Aggregated link.veroe.space: 2 visits
+Γ£à Aggregated nexus-creative-tech: 133 visits
+Γ£à Aggregated spelling-bee: 511 visits
+[2026-03-12T22:00:00.008Z] Aggregating stats from 5 sources...
+Γ£à Aggregated domain-hub: 22 visits
+Γ¥î farkle-staging aggregation failed: column "last_played_date" does not exist
+Γ£à Aggregated link.veroe.space: 2 visits
+Γ£à Aggregated nexus-creative-tech: 133 visits
+Γ£à Aggregated spelling-bee: 511 visits
+[2026-03-12T22:15:00.005Z] Aggregating stats from 5 sources...
+Γ£à Aggregated domain-hub: 23 visits
+Γ¥î farkle-staging aggregation failed: column "last_played_date" does not exist
+Γ£à Aggregated link.veroe.space: 2 visits
+Γ£à Aggregated nexus-creative-tech: 133 visits
+Γ£à Aggregated spelling-bee: 511 visits
+[2026-03-12T22:30:00.007Z] Aggregating stats from 5 sources...
+Γ¥î domain-hub aggregation failed: connect ETIMEDOUT 66.33.22.240:55212
+Γ¥î farkle-staging aggregation failed: connect ETIMEDOUT 66.33.22.247:21885
+Γ¥î link.veroe.space aggregation failed: getaddrinfo ENOTFOUND switchback.proxy.rlwy.net
+Γ¥î nexus-creative-tech aggregation failed: getaddrinfo ENOTFOUND interchange.proxy.rlwy.net
+Γ¥î spelling-bee aggregation failed: getaddrinfo ENOTFOUND crossover.proxy.rlwy.net

@@ -1,97 +1,4 @@
-const dotenv = require('dotenv');
-dotenv.config();
 
-const express = require('express');
-const { Pool } = require('pg');
-const helmet = require('helmet');
-const cors = require('cors');
-const { runAggregator, getStats } = require('./aggregator');
-
-const app = express();
-const PORT = process.env.PORT || 3000;
-
-app.use(helmet({ contentSecurityPolicy: false }));
-app.use(cors());
-app.use(express.json());
-
-const adminUser = (process.env.ADMIN_USER || 'admin').replace(/['"]/g, '').trim();
-const adminPass = (process.env.ADMIN_PASS || 'password').replace(/['"]/g, '').trim();
-
-console.log(`[Auth] Initializing with user: "${adminUser}"`);
-
-// Manual Basic Auth Middleware for better reliability on Railway
-app.use((req, res, next) => {
-    const auth = req.headers.authorization;
-    if (!auth) {
-        res.setHeader('WWW-Authenticate', 'Basic realm="Veroix Analytics Central"');
-        return res.status(401).send('Authentication required');
-    }
-
-    const credentials = Buffer.from(auth.split(' ')[1], 'base64').toString().split(':');
-    const [u, p] = credentials;
-
-    if (u === adminUser && p === adminPass) {
-        return next();
-    }
-
-    res.setHeader('WWW-Authenticate', 'Basic realm="Veroix Analytics Central"');
-    res.status(401).send('Invalid credentials');
-});
-
-
-
-const dbConfigs = [
-    { name: 'domain-hub', envKey: 'DB_DOMAIN_HUB_URL' },
-    { name: 'farkle-staging', envKey: 'DB_FARKLE_STAGING_URL' },
-    { name: 'link.veroe.space', envKey: 'DB_LINK_VEROE_SPACE_URL' },
-    { name: 'nexus-creative-tech', envKey: 'DB_NEXUS_CREATIVE_URL' },
-    { name: 'spelling-bee', envKey: 'DB_SPELLING_BEE_URL' }
-];
-
-const pools = {};
-dbConfigs.forEach(config => {
-    const connectionString = (process.env[config.envKey] || '').trim();
-    if (connectionString) {
-        pools[config.name] = new Pool({ 
-            connectionString, 
-            ssl: { rejectUnauthorized: false },
-            connectionTimeoutMillis: 5000 
-        });
-        console.log(`✅ Initialized pool for ${config.name}`);
-    } else {
-        console.warn(`⚠️  Missing environment variable for ${config.name} (${config.envKey})`);
-    }
-});
-
-app.get('/api/stats', async (req, res) => {
-    const health = await Promise.all(dbConfigs.map(async config => {
-        const pool = pools[config.name];
-        if (!pool) return { name: config.name, status: 'Missing Config', latency: null };
-        const start = Date.now();
-        try {
-            await pool.query('SELECT 1');
-            return { name: config.name, status: 'Online', latency: (Date.now() - start) + 'ms' };
-        } catch (error) {
-            return { name: config.name, status: 'Offline', error: error.message };
-        }
-    }));
-
-    const combined = health.map(h => {
-        const aggr = aggregated[h.name] || {};
-        return {
-            ...h,
-            ...aggr,
-            // Keep 'Online' status from health check if connected, 
-            // but use aggregator's status if it has more specific info
-            status: h.status === 'Online' ? (aggr.status || 'Online') : h.status
-        };
-    });
-
-    res.json(combined);
-});
-
-app.get('/', (req, res) => {
-    res.send(`
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -420,31 +327,31 @@ app.get('/', (req, res) => {
                 if (db.status === 'Online' || db.status === 'Connected') statusClass = 'status-online';
                 else if (db.status.startsWith('Synchronized')) statusClass = 'status-sync';
 
-                return \`
+                return `
                     <div class="card">
                         <div class="card-header">
-                            <span class="db-name">\${db.name}</span>
-                            <span class="status-badge \${statusClass}">\${db.status}</span>
+                            <span class="db-name">${db.name}</span>
+                            <span class="status-badge ${statusClass}">${db.status}</span>
                         </div>
                         <div class="metrics">
                             <div class="metric">
                                 <span class="metric-label">Total Reach</span>
-                                <span class="metric-value">\${(db.totalVisits || 0).toLocaleString()}</span>
+                                <span class="metric-value">${(db.totalVisits || 0).toLocaleString()}</span>
                             </div>
                             <div class="metric">
                                 <span class="metric-label">Shielded</span>
-                                <span class="metric-value" style="color: \${db.blockedVisits > 0 ? 'var(--error)' : 'var(--success)'}">\${(db.blockedVisits || 0).toLocaleString()}</span>
+                                <span class="metric-value" style="color: ${db.blockedVisits > 0 ? 'var(--error)' : 'var(--success)'}">${(db.blockedVisits || 0).toLocaleString()}</span>
                             </div>
                             <div class="metric latency">
                                 <span class="metric-label">Node Latency</span>
-                                <span class="metric-value" style="font-size: 1.1rem; color: var(--primary)">\${db.latency || 'Pending...'}</span>
+                                <span class="metric-value" style="font-size: 1.1rem; color: var(--primary)">${db.latency || 'Pending...'}</span>
                             </div>
                         </div>
                         <div class="last-visit">
-                            Last Signal: <span style="color: #fff; font-weight: 500;">\${lastSeen}</span>
+                            Last Signal: <span style="color: #fff; font-weight: 500;">${lastSeen}</span>
                         </div>
                     </div>
-                \`;
+                `;
             }).join("");
         }
 
@@ -453,11 +360,4 @@ app.get('/', (req, res) => {
     </script>
 </body>
 </html>
-    `);
-});
-
-app.listen(PORT, async () => {
-    console.log('🚀 Analytics Central running on port ' + PORT);
-    await runAggregator(); 
-});
-
+    

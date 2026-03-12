@@ -1,0 +1,16 @@
+[dotenv@17.3.1] injecting env (9) from .env -- tip: ≡ƒöÉ prevent committing .env to code: https://dotenvx.com/precommit
+Nexus Analytics Events Columns:
+[
+  'id',         'status',
+  'country',    'country_code',
+  'region',     'region_name',
+  'city',       'zip',
+  'lat',        'lon',
+  'timezone',   'isp',
+  'org',        'as_info',
+  'query',      'timestamp',
+  'user_agent', 'browser',
+  'os',         'device',
+  'language',   'screen_resolution',
+  'referrer',   'path'
+]

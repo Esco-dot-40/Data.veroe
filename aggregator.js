@@ -26,30 +26,64 @@ async function runAggregator() {
             const tablesRes = await pool.query(`SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'`);
             const tables = tablesRes.rows.map(r => r.table_name);
             
-            let sourceData = { name: source.name, tables, totalVisits: 0, blockedVisits: 0, lastVisit: null };
+            let sourceData = { 
+                name: source.name, 
+                tables, 
+                totalVisits: 0, 
+                blockedVisits: 0, 
+                lastVisit: null,
+                metrics: {}, 
+                status: 'Connected'
+            };
 
+            // 1. NEXUS / VEROIX Style (page_accesses)
             if (tables.includes('page_accesses')) {
-                const res = await pool.query('SELECT COUNT(*) as total, SUM(CASE WHEN isBlocked = 1 THEN 1 ELSE 0 END) as blocked, MAX(timestamp) as last FROM page_accesses');
+                const res = await pool.query(`
+                    SELECT 
+                        COUNT(*) as total, 
+                        SUM(CASE WHEN isBlocked = 1 THEN 1 ELSE 0 END) as blocked, 
+                        MAX(timestamp) as last,
+                        COUNT(DISTINCT ip) as unique_ips
+                    FROM page_accesses
+                `);
                 sourceData.totalVisits = parseInt(res.rows[0].total) || 0;
                 sourceData.blockedVisits = parseInt(res.rows[0].blocked) || 0;
                 sourceData.lastVisit = res.rows[0].last;
-            } else if (tables.includes('visitor_logs')) {
+                sourceData.metrics.unique_ips = parseInt(res.rows[0].unique_ips);
+            } 
+            
+            // 2. DISCORD / NYT Style (visitor_logs)
+            else if (tables.includes('visitor_logs')) {
                 const res = await pool.query('SELECT COUNT(*) as total, MAX(timestamp) as last FROM visitor_logs');
                 sourceData.totalVisits = parseInt(res.rows[0].total) || 0;
                 sourceData.lastVisit = res.rows[0].last;
-            } else if (tables.includes('analytics_events')) {
-                const res = await pool.query('SELECT COUNT(*) as total, MAX(timestamp) as last FROM analytics_events');
-                sourceData.totalVisits = parseInt(res.rows[0].total) || 0;
-                sourceData.lastVisit = res.rows[0].last;
-            } else if (tables.includes('pixel_hits')) {
+                
+                // Try to get specific stats if it's the NYT app
+                if (tables.includes('games')) {
+                    const gameRes = await pool.query('SELECT COUNT(*) as games FROM games');
+                    sourceData.metrics.games_played = parseInt(gameRes.rows[0].games);
+                }
+            } 
+
+            // 3. PIXEL / TRACKER Style (pixel_hits)
+            else if (tables.includes('pixel_hits')) {
                 const res = await pool.query('SELECT COUNT(*) as total, MAX(timestamp) as last FROM pixel_hits');
                 sourceData.totalVisits = parseInt(res.rows[0].total) || 0;
                 sourceData.lastVisit = res.rows[0].last;
-            } else if (tables.includes('user_stats')) {
+            }
+
+            // 4. Fallback for Static Stats (user_stats)
+            if (tables.includes('user_stats') && sourceData.totalVisits === 0) {
                 const res = await pool.query('SELECT SUM(games_played) as total, MAX(last_played_date) as last FROM user_stats');
                 sourceData.totalVisits = parseInt(res.rows[0].total) || 0;
                 sourceData.lastVisit = res.rows[0].last;
             }
+
+            // Validation: If no data found but connection OK, mark as "Idle"
+            if (sourceData.totalVisits === 0) {
+                sourceData.status = 'Synchronized (No Data)';
+            }
+
 
 
             newStats[source.name] = sourceData;

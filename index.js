@@ -168,8 +168,12 @@ app.post('/api/track', async (req, res) => {
 // 3. Raw Logs Query Router
 app.get('/api/logs', async (req, res) => {
     const { site } = req.query;
-    const siteConfig = SITE_MAP.find(s => s.id === site);
-    if (!siteConfig) return res.status(404).send('Site Not Found');
+    let siteConfig = SITE_MAP.find(s => s.id === site);
+    
+    // If it's a dynamic tracked site not natively mapped, pull from domain-hub
+    if (!siteConfig) {
+         siteConfig = { id: site, db: 'domain-hub', filter: site };
+    }
 
     const pool = pools[siteConfig.db];
     if (!pool) return res.status(500).send('Node Database Offline');
@@ -197,6 +201,31 @@ app.get('/api/logs', async (req, res) => {
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
+});
+
+// 4. Fetch Active Configured and Dynamic Domains
+app.get('/api/sites', async (req, res) => {
+    const pool = pools['domain-hub'];
+    const dynamicSites = [];
+    if (pool) {
+        try {
+            const { rows } = await pool.query('SELECT DISTINCT site_label FROM visitor_logs');
+            rows.forEach(r => {
+                if (r.site_label && r.site_label !== 'Default' && !SITE_MAP.some(s => s.filter === r.site_label || s.id === r.site_label)) {
+                    dynamicSites.push({
+                        id: r.site_label,
+                        label: r.site_label,
+                        host: 'Auto-Discovered',
+                        db: 'domain-hub',
+                        filter: r.site_label,
+                        logo: '📡'
+                    });
+                }
+            });
+        } catch(e) { console.error("Dynamic site fetch:", e.message) }
+    }
+    
+    res.json([...SITE_MAP, ...dynamicSites]);
 });
 
 app.get('/api/stats', async (req, res) => {
@@ -419,15 +448,21 @@ app.get('/', (req, res) => {
     <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
 
     <script>
-        const SITES = ${siteMapJson};
-        let currentSite = SITES[0];
+        let SITES = [];
+        let currentSite = null;
         let map, heatLayer;
         let activeTab = 'heatmap';
 
-        function init() {
-            renderSidebar();
-            initMap();
-            loadSite(SITES[1].id); // Defaults to first fully mapped site or choose spell
+        async function init() {
+            try {
+                const res = await fetch('/api/sites');
+                SITES = await res.json();
+                renderSidebar();
+                initMap();
+                if (SITES.length > 0) loadSite(SITES.length > 1 ? SITES[1].id : SITES[0].id);
+            } catch (e) {
+                console.error("Sites load error", e);
+            }
         }
 
         function renderSidebar() {
@@ -467,8 +502,7 @@ app.get('/', (req, res) => {
             document.querySelectorAll('.site-item').forEach(i => i.classList.remove('active'));
             document.getElementById('item-' + siteId).classList.add('active');
 
-            document.getElementById('code-snippet').innerText = \`<!-- Veroix Analytics Core -->
-<script src="\${window.location.origin}/api/track.js?site=\${currentSite.id}"><\\/script>\`;
+            document.getElementById('code-snippet').innerText = \`<!-- Veroix Analytics Core -->\n<script src="\${window.location.origin}/api/track.js?site=\${currentSite.id}"><\\/script>\`;
 
             fetchLogs(siteId);
         }

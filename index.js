@@ -170,37 +170,66 @@ app.get('/api/logs', async (req, res) => {
     const { site } = req.query;
     let siteConfig = SITE_MAP.find(s => s.id === site);
     
-    // If it's a dynamic tracked site not natively mapped, pull from domain-hub
+    // Fallback if not mapped natively
     if (!siteConfig) {
          siteConfig = { id: site, db: 'domain-hub', filter: site };
     }
 
-    const pool = pools[siteConfig.db];
-    if (!pool) return res.status(500).send('Node Database Offline');
+    let rows = [];
 
+    // 1. Fetch from Centralized Domain-Hub Tracker (Where all new snippets are logging)
     try {
-        let rows = [];
-        if (siteConfig.db === 'domain-hub') {
-            const result = await pool.query(
+        const poolHub = pools['domain-hub'];
+        if (poolHub) {
+            const result = await poolHub.query(
                 `SELECT timestamp, ip, city, region, country_code, user_agent, referrer, lat, lon FROM visitor_logs WHERE site_label = $1 ORDER BY timestamp DESC LIMIT 150`, 
-                [siteConfig.filter]
+                [siteConfig.filter || siteConfig.id]
             );
-            rows = result.rows;
-        } else if (siteConfig.db === 'nexus-creative-tech') {
-            const result = await pool.query(`SELECT timestamp, query as ip, city, region_name as region, country_code, user_agent, referrer, lat, lon FROM analytics_events ORDER BY timestamp DESC LIMIT 150`);
-            rows = result.rows;
-        } else if (siteConfig.db === 'spelling-bee') {
-             const result = await pool.query(`SELECT timestamp, ip, city, region, country_code, user_agent, referrer, lat, lon FROM visitor_logs ORDER BY timestamp DESC LIMIT 150`);
-             rows = result.rows;
-        } else {
-             // Fallback for listable db triggers
-             const result = await pool.query(`SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'`);
-             return res.json({ message: "No explicit logs parser for this DB schema yet.", tables: result.rows.map(r => r.table_name) });
+            rows = rows.concat(result.rows);
         }
-        res.json(rows);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error("Central Hub Logs fetch failed:", err.message);
     }
+
+    // 2. Fetch from Dedicated Historical DB (If it exists and is online)
+    if (siteConfig.db !== 'domain-hub') {
+        try {
+            const specificPool = pools[siteConfig.db];
+            if (specificPool) {
+                if (siteConfig.db === 'nexus-creative-tech') {
+                    const result = await specificPool.query(`SELECT timestamp, query as ip, city, region_name as region, country_code, user_agent, referrer, lat, lon FROM analytics_events ORDER BY timestamp DESC LIMIT 150`);
+                    rows = rows.concat(result.rows);
+                } else if (siteConfig.db === 'spelling-bee') {
+                    const result = await specificPool.query(`SELECT timestamp, ip, city, region, country_code, user_agent, referrer, lat, lon FROM visitor_logs ORDER BY timestamp DESC LIMIT 150`);
+                    rows = rows.concat(result.rows);
+                } else if (siteConfig.db === 'farkle-staging') {
+                    const result = await specificPool.query(`SELECT MAX(timestamp) as timestamp, ip_address as ip, city, region, country_code, user_agent, '' as referrer, 0 as lat, 0 as lon FROM users GROUP BY ip_address, city, region, country_code, user_agent ORDER BY timestamp DESC LIMIT 150`);
+                    rows = rows.concat(result.rows);
+                } else if (siteConfig.db === 'link.veroe.space') {
+                    const result = await specificPool.query(`SELECT timestamp, ip, city, region, country_code, user_agent, referrer, lat, lon FROM pixel_hits ORDER BY timestamp DESC LIMIT 150`);
+                    rows = rows.concat(result.rows);
+                }
+            }
+        } catch (err) {
+            console.error(`Historical Logs fetch failed for ${siteConfig.db}:`, err.message);
+        }
+    }
+
+    // Sort combined rows by timestamp descendant
+    rows.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    
+    // Trim to 200 items maximum to prevent overload
+    if (rows.length > 200) rows = rows.slice(0, 200);
+
+    if (rows.length === 0) {
+        // Only error out definitively if pools failed or empty
+        const isOffline = siteConfig.db !== 'domain-hub' && (!pools[siteConfig.db] && !pools['domain-hub']);
+        if (isOffline) {
+            return res.status(500).json({ message: 'Node Database Offline' });
+        }
+    }
+
+    res.json(rows);
 });
 
 // 4. Fetch Active Configured and Dynamic Domains

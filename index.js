@@ -229,15 +229,23 @@ app.get('/api/sites', async (req, res) => {
         try {
             const { rows } = await pool.query('SELECT DISTINCT site_label FROM visitor_logs');
             rows.forEach(r => {
-                if (r.site_label && r.site_label !== 'Default' && !SITE_MAP.some(s => s.filter === r.site_label || s.id === r.site_label)) {
-                    dynamicSites.push({
-                        id: r.site_label,
-                        label: r.site_label,
-                        host: 'Auto-Discovered',
-                        db: 'domain-hub',
-                        filter: r.site_label,
-                        logo: '📡'
-                    });
+                const label = (r.site_label || '').trim();
+                if (label && label !== 'Default') {
+                    const isDup = SITE_MAP.some(s => 
+                        (s.filter && s.filter.toLowerCase() === label.toLowerCase()) || 
+                        (s.id && s.id.toLowerCase() === label.toLowerCase()) ||
+                        (s.label && s.label.toLowerCase() === label.toLowerCase())
+                    );
+                    if (!isDup) {
+                        dynamicSites.push({
+                            id: label,
+                            label: label,
+                            host: 'Auto-Discovered',
+                            db: 'domain-hub',
+                            filter: label,
+                            logo: '📡'
+                        });
+                    }
                 }
             });
         } catch(e) { console.error("Dynamic site fetch:", e.message) }
@@ -546,22 +554,50 @@ app.get('/', (req, res) => {
                 }
 
                 // Render Logs Table
-                tbody.innerHTML = data.map(log => \`
-                    <tr>
-                        <td>\${new Date(log.timestamp).toLocaleString()}</td>
-                        <td><span style="color:var(--primary)">\${log.ip || 'Unknown'}</span></td>
-                        <td>\${log.city || ''}, \${log.country_code || 'N/A'}</td>
-                        <td>\${log.referrer ? \`<a href="\${log.referrer}" target="_blank" style="color:#70ffb5;text-decoration:none;">Referrer</a>\` : 'Direct'} \${log.user_agent ? \`<span style="display:block;font-size:0.65rem;color:var(--text-dim);">\${log.user_agent.substring(0,40)}...</span>\` : ''}</td>
-                    </tr>
-                \`).join("");
+                tbody.innerHTML = data.map(log => {
+                    let os = 'Unknown OS';
+                    let browser = 'Unknown Browser';
+                    const ua = log.user_agent || '';
+                    if (/windows/i.test(ua)) os = 'Windows 🪟';
+                    else if (/mac/i.test(ua)) os = 'macOS 🍎';
+                    else if (/linux/i.test(ua)) os = 'Linux 🐧';
+                    else if (/android/i.test(ua)) os = 'Android 🤖';
+                    else if (/ios|iphone|ipad/i.test(ua)) os = 'iOS 📱';
 
-                // Render Heatmap Coords
+                    if (/chrome|crios/i.test(ua)) browser = 'Chrome';
+                    else if (/firefox|fxios/i.test(ua)) browser = 'Firefox';
+                    else if (/safari/i.test(ua) && !/chrome/i.test(ua)) browser = 'Safari';
+                    else if (/edge/i.test(ua)) browser = 'Edge';
+
+                    return \`
+                        <tr>
+                            <td>\${new Date(log.timestamp).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'})}</td>
+                            <td><span style="color:var(--primary);font-weight:bold;">\${log.ip || 'Masked VPN'}</span></td>
+                            <td>\${log.city || 'Private'}, \${log.country_code || 'N/A'}<br><span style="font-size:0.7rem; color:var(--text-dim);">\${os} · \${browser}</span></td>
+                            <td>\${log.referrer ? \`<a href="\${log.referrer}" target="_blank" style="color:#70ffb5;text-decoration:none;">Referrer</a>\` : 'Direct Traffic'}
+                                \${ua ? \`<span title="\${ua}" style="display:block;font-size:0.65rem;color:var(--text-dim);cursor:help;">\${ua.substring(0,35)}...</span>\` : ''}
+                            </td>
+                        </tr>
+                    \`;
+                }).join("");
+
+                // Render Heatmap Coords with aggressive country fallbacks if lat/lon empty
                 const points = data
-                    .filter(l => l.lat && l.lon)
-                    .map(l => [parseFloat(l.lat), parseFloat(l.lon), 0.5]);
+                    .map(l => {
+                        let la = parseFloat(l.lat);
+                        let lo = parseFloat(l.lon);
+                        // Hardcode rough country centers for heatmaps if exact match failed
+                        if ((!la || !lo) && l.country_code === 'US') { la = 37.0902; lo = -95.7129; }
+                        else if ((!la || !lo) && l.country_code === 'UK') { la = 55.3781; lo = -3.4360; }
+                        else if ((!la || !lo) && l.country_code === 'CA') { la = 56.1304; lo = -106.3468; }
+                        else if ((!la || !lo) && l.country_code === 'DE') { la = 51.1657; lo = 10.4515; }
+                        
+                        return (la && lo) ? [la, lo, 0.75] : null;
+                    })
+                    .filter(Boolean);
 
                 if (points.length > 0) {
-                     heatLayer = L.heatLayer(points, { radius: 25, blur: 15, maxZoom: 10 }).addTo(map);
+                     heatLayer = L.heatLayer(points, { radius: 30, blur: 20, maxZoom: 10, minOpacity: 0.5 }).addTo(map);
                 }
 
             } catch (err) {

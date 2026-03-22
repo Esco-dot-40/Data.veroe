@@ -221,14 +221,6 @@ app.get('/api/logs', async (req, res) => {
     // Trim to 200 items maximum to prevent overload
     if (rows.length > 200) rows = rows.slice(0, 200);
 
-    if (rows.length === 0) {
-        // Only error out definitively if pools failed or empty
-        const isOffline = siteConfig.db !== 'domain-hub' && (!pools[siteConfig.db] && !pools['domain-hub']);
-        if (isOffline) {
-            return res.status(500).json({ message: 'Node Database Offline' });
-        }
-    }
-
     res.json(rows);
 });
 

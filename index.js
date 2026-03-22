@@ -21,6 +21,10 @@ console.log(`[Auth] Initializing with user: "${adminUser}"`);
 
 // Manual Basic Auth Middleware for better reliability on Railway
 app.use((req, res, next) => {
+    if (req.path === '/api/track.js' || req.path === '/api/track') {
+        return next();
+    }
+
     const auth = req.headers.authorization;
     if (!auth) {
         res.setHeader('WWW-Authenticate', 'Basic realm="Veroix Analytics Central"');

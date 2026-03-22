@@ -200,13 +200,10 @@ app.get('/api/logs', async (req, res) => {
                     const result = await specificPool.query(`SELECT timestamp, query as ip, city, region_name as region, country_code, user_agent, referrer, lat, lon FROM analytics_events ORDER BY timestamp DESC LIMIT 150`);
                     rows = rows.concat(result.rows);
                 } else if (siteConfig.db === 'spelling-bee') {
-                    const result = await specificPool.query(`SELECT timestamp, ip, city, region, country_code, user_agent, referrer, lat, lon FROM visitor_logs ORDER BY timestamp DESC LIMIT 150`);
-                    rows = rows.concat(result.rows);
-                } else if (siteConfig.db === 'farkle-staging') {
-                    const result = await specificPool.query(`SELECT MAX(timestamp) as timestamp, ip_address as ip, city, region, country_code, user_agent, '' as referrer, 0 as lat, 0 as lon FROM users GROUP BY ip_address, city, region, country_code, user_agent ORDER BY timestamp DESC LIMIT 150`);
+                    const result = await specificPool.query(`SELECT timestamp, ip, city, region, country as country_code, user_agent, referrer, lat, lng as lon FROM visitor_logs ORDER BY timestamp DESC LIMIT 150`);
                     rows = rows.concat(result.rows);
                 } else if (siteConfig.db === 'link.veroe.space') {
-                    const result = await specificPool.query(`SELECT timestamp, ip, city, region, country_code, user_agent, referrer, lat, lon FROM pixel_hits ORDER BY timestamp DESC LIMIT 150`);
+                    const result = await specificPool.query(`SELECT timestamp, ip, city, region, country as country_code, ua as user_agent, '' as referrer, 0 as lat, 0 as lon FROM pixel_hits ORDER BY timestamp DESC LIMIT 150`);
                     rows = rows.concat(result.rows);
                 }
             }

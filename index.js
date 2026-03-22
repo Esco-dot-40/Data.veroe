@@ -70,7 +70,7 @@ const SITE_MAP = [
 
 const pools = {};
 dbConfigs.forEach(config => {
-    const connectionString = (process.env[config.envKey] || '').trim();
+    const connectionString = (process.env[config.envKey] || (config.name === 'domain-hub' ? process.env.DATABASE_URL : '') || '').trim();
     if (connectionString) {
         pools[config.name] = new Pool({ 
             connectionString, 

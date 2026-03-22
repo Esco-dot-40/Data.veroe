@@ -10,36 +10,77 @@ const { runAggregator, getStats } = require('./aggregator');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+const cookieParser = require('cookie-parser');
+const speakeasy = require('speakeasy');
+const qrcode = require('qrcode');
+const crypto = require('crypto');
+const fs = require('fs');
+
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors());
 app.use(express.json());
+app.use(cookieParser());
 
 const adminUser = (process.env.ADMIN_USER || 'admin').replace(/['"]/g, '').trim();
 const adminPass = (process.env.ADMIN_PASS || 'password').replace(/['"]/g, '').trim();
 
-console.log(`[Auth] Initializing with user: "${adminUser}"`);
+const VALID_SESSIONS = new Set();
 
-// Manual Basic Auth Middleware for better reliability on Railway
+// Setup 2FA Flow
+app.get('/setup-2fa', async (req, res) => {
+    if (process.env.TWO_FACTOR_SECRET) return res.redirect('/login');
+    const secret = speakeasy.generateSecret({ name: 'Veroix Analytics Central' });
+    const qrCodeUrl = await qrcode.toDataURL(secret.otpauth_url);
+    const html = fs.readFileSync(__dirname + '/setup.html', 'utf8')
+                .replace('{{QR_IMG}}', qrCodeUrl)
+                .replace('{{SECRET_KEY}}', secret.base32);
+    res.send(html);
+});
+
+// Login UI
+app.get('/login', (req, res) => {
+    if (req.cookies.auth_token && VALID_SESSIONS.has(req.cookies.auth_token)) return res.redirect('/');
+    res.sendFile(__dirname + '/login.html');
+});
+
+// Login Verification API
+app.post('/api/auth', (req, res) => {
+    const { user, pass, token } = req.body;
+    if (user !== adminUser || pass !== adminPass) return res.status(401).json({ error: 'Identity rejected' });
+    
+    // If securely provisioned with 2FA, verify Duo Token securely
+    if (process.env.TWO_FACTOR_SECRET) {
+        const verified = speakeasy.totp.verify({
+            secret: process.env.TWO_FACTOR_SECRET,
+            encoding: 'base32',
+            token: token
+        });
+        if (!verified) return res.status(401).json({ error: 'Token invalid' });
+    }
+    
+    const sess = crypto.randomBytes(32).toString('hex');
+    VALID_SESSIONS.add(sess);
+    res.cookie('auth_token', sess, { httpOnly: true, maxAge: 24 * 60 * 60 * 1000 });
+    res.json({ success: true });
+});
+
+// Primary System Interceptor (Zero-Trust Model)
 app.use((req, res, next) => {
-    if (req.path === '/api/track.js' || req.path === '/api/track') {
-        return next();
-    }
+    // 1. Bypass public APIs natively needed by end-clients
+    if (req.path === '/api/track.js' || req.path === '/api/track') return next();
 
-    const auth = req.headers.authorization;
-    if (!auth) {
-        res.setHeader('WWW-Authenticate', 'Basic realm="Veroix Analytics Central"');
-        return res.status(401).send('Authentication required');
-    }
+    // 2. Validate HttpOnly Token
+    const cToken = req.cookies.auth_token;
+    if (cToken && VALID_SESSIONS.has(cToken)) return next();
 
-    const credentials = Buffer.from(auth.split(' ')[1], 'base64').toString().split(':');
-    const [u, p] = credentials;
-
-    if (u === adminUser && p === adminPass) {
-        return next();
-    }
-
-    res.setHeader('WWW-Authenticate', 'Basic realm="Veroix Analytics Central"');
-    res.status(401).send('Invalid credentials');
+    // 3. Fallbacks
+    if (req.path.startsWith('/api/')) return res.status(401).json({ error: 'Authentication Required' });
+    
+    // Redirect if they have NOT locked it yet
+    if (!process.env.TWO_FACTOR_SECRET) return res.redirect('/setup-2fa');
+    
+    // Redirect default to Login Screen
+    res.redirect('/login');
 });
 
 

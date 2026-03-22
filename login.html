@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Veroix Vault Login</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        body { background: #050508; color: #e1e1e6; font-family: 'Inter', sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; 
+               background-image: radial-gradient(circle at 10% 10%, #170724, transparent), radial-gradient(circle at 90% 90%, #031525, transparent); }
+        .box { background: rgba(20,20,25,0.7); border: 1px solid rgba(255,255,255,0.05); padding: 3rem; border-radius: 1rem; backdrop-filter: blur(20px); text-align: center; width: 400px; box-shadow: 0 10px 40px rgba(0,245,255,0.1); }
+        h2 { font-family: 'Orbitron'; color: #00f5ff; letter-spacing: 2px; margin-bottom: 2rem; }
+        input { width: 100%; border-radius: 0.5rem; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); padding: 1rem; margin-bottom: 1rem; color: #fff; font-family: 'Orbitron'; box-sizing: border-box; outline: none; }
+        input:focus { border-color: #00f5ff; box-shadow: 0 0 8px rgba(0,245,255,0.3); }
+        button { width: 100%; background: #00f5ff; color: #000; border: none; padding: 1rem; border-radius: 0.5rem; font-weight: 600; font-family: 'Orbitron'; cursor: pointer; transition: 0.2s; letter-spacing: 1px; }
+        button:hover { background: #70ffb5; box-shadow: 0 0 15px rgba(112,255,181,0.5); }
+        .error { color: #ff3e3e; font-size: 0.85rem; margin-top: 1rem; display: none; }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h2>VEROIX SECURE</h2>
+        <form id="vault-form">
+            <input type="text" id="user" placeholder="SYS_ADMIN" required autocomplete="off">
+            <input type="password" id="pass" placeholder="MASTER KEY" required>
+            <input type="text" id="totp" placeholder="DUO TOKEN (6 DIGITS)" pattern="[0-9]*" maxlength="6" inputmode="numeric" required autocomplete="off">
+            <button type="submit">AUTHORIZE ACCESS</button>
+            <div class="error" id="err-msg">Access Denied. Signature invalid.</div>
+        </form>
+    </div>
+
+    <script>
+        document.getElementById('vault-form').onsubmit = async (e) => {
+            e.preventDefault();
+            const btn = document.querySelector('button');
+            const err = document.getElementById('err-msg');
+            btn.innerText = "AUTHENTICATING...";
+            err.style.display = 'none';
+            
+            const res = await fetch('/api/auth', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    user: document.getElementById('user').value,
+                    pass: document.getElementById('pass').value,
+                    token: document.getElementById('totp').value
+                })
+            });
+
+            if (res.ok) {
+                btn.innerText = "ACCESS GRANTED";
+                btn.style.background = "#00ff88";
+                setTimeout(() => window.location.href = '/', 600);
+            } else {
+                btn.innerText = "AUTHORIZE ACCESS";
+                err.style.display = 'block';
+            }
+        };
+    </script>
+</body>
+</html>

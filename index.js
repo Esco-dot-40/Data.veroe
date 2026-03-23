@@ -39,16 +39,32 @@ const ACCOUNTS = [
     }
 ];
 
-const VALID_SESSIONS = new Set();
+const VALID_SESSIONS = new Map(); // token => { username, db_match, needs_2fa }
 
-// Setup 2FA Flow
+// 1. Setup 2FA Flow (Automated Save into Database)
 app.get('/setup-2fa', async (req, res) => {
-    // If the master lockdown is engaged, only authenticated nodes can provision new slots
-    if (ACCOUNTS[0].secret && !(req.cookies.auth_token && VALID_SESSIONS.has(req.cookies.auth_token))) {
-        return res.redirect('/login');
+    const cToken = req.cookies.auth_token;
+    if (!cToken || !VALID_SESSIONS.has(cToken)) return res.redirect('/login');
+
+    const sessionData = VALID_SESSIONS.get(cToken);
+    
+    // Only DB accounts without 2FA bound to them get automated setups
+    if (!sessionData.db_match) return res.redirect('/'); 
+
+    const secret = speakeasy.generateSecret({ name: 'Veroix Analytics Central (' + sessionData.username + ')' });
+    
+    // Automatically SAVE the secret into the database FOR this DB user right now! No manual intervention.
+    const pool = pools['domain-hub'];
+    if (pool) {
+        try {
+            await pool.query('UPDATE admin_users SET two_factor_secret = $1 WHERE username = $2', [secret.base32, sessionData.username]);
+            sessionData.needs_2fa = false; // Resolved
+            VALID_SESSIONS.set(cToken, sessionData);
+        } catch (e) {
+            return res.send("DB Sync Error: " + e.message);
+        }
     }
 
-    const secret = speakeasy.generateSecret({ name: 'Veroix Analytics Central' });
     const qrCodeUrl = await qrcode.toDataURL(secret.otpauth_url);
     const html = fs.readFileSync(__dirname + '/setup.html', 'utf8')
                 .replace('{{QR_IMG}}', qrCodeUrl)
@@ -56,22 +72,42 @@ app.get('/setup-2fa', async (req, res) => {
     res.send(html);
 });
 
-// Login UI
+// 2. Login UI
 app.get('/login', (req, res) => {
-    if (req.cookies.auth_token && VALID_SESSIONS.has(req.cookies.auth_token)) return res.redirect('/');
+    if (req.cookies.auth_token && VALID_SESSIONS.has(req.cookies.auth_token)) {
+        const session = VALID_SESSIONS.get(req.cookies.auth_token);
+        if (!session.needs_2fa) return res.redirect('/');
+    }
     res.sendFile(__dirname + '/login.html');
 });
 
-// Login Verification API
-app.post('/api/auth', (req, res) => {
+// 3. Login Verification API
+app.post('/api/auth', async (req, res) => {
     const { user, pass, token } = req.body;
-    
-    // Verify Multi-Slot Profile Matches
-    const account = ACCOUNTS.find(a => a.user === user && a.pass === pass);
+    const pool = pools['domain-hub'];
+
+    let account = null;
+
+    // Database lookup first
+    if (pool) {
+        try {
+            const { rows } = await pool.query('SELECT * FROM admin_users WHERE username = $1 AND password = $2', [user, pass]);
+            if (rows.length > 0) {
+                account = { user: rows[0].username, pass: rows[0].password, secret: rows[0].two_factor_secret, db: true };
+            }
+        } catch (e) { console.error("DB Auth error:", e.message); }
+    }
+
+    // Fallback to Env Arrays
+    if (!account) {
+        account = ACCOUNTS.find(a => a.user === user && a.pass === pass);
+    }
+
     if (!account) return res.status(401).json({ error: 'Identity rejected' });
-    
-    // If securely provisioned with 2FA on this slot, verify Duo Token securely
-    if (account.secret) {
+
+    // Validate 2FA TOTP token if secret exists
+    const hasSecret = !!account.secret;
+    if (hasSecret) {
         const verified = speakeasy.totp.verify({
             secret: account.secret,
             encoding: 'base32',
@@ -79,29 +115,34 @@ app.post('/api/auth', (req, res) => {
         });
         if (!verified) return res.status(401).json({ error: 'Token invalid' });
     }
-    
+
     const sess = crypto.randomBytes(32).toString('hex');
-    VALID_SESSIONS.add(sess);
+    const needs_2fa = account.db && !hasSecret;
+    
+    VALID_SESSIONS.set(sess, { username: account.user, db_match: !!account.db, needs_2fa });
     res.cookie('auth_token', sess, { httpOnly: true, maxAge: 24 * 60 * 60 * 1000 });
-    res.json({ success: true });
+    
+    // Response with correct context
+    res.json({ success: true, redirect: needs_2fa ? '/setup-2fa' : '/' });
 });
 
-// Primary System Interceptor (Zero-Trust Model)
+// 4. Primary System Interceptor (Zero-Trust Model)
 app.use((req, res, next) => {
-    // 1. Bypass public APIs natively needed by end-clients
     if (req.path === '/api/track.js' || req.path === '/api/track') return next();
 
-    // 2. Validate HttpOnly Token
     const cToken = req.cookies.auth_token;
-    if (cToken && VALID_SESSIONS.has(cToken)) return next();
+    if (cToken && VALID_SESSIONS.has(cToken)) {
+        const session = VALID_SESSIONS.get(cToken);
+        
+        // If they logged in without a 2FA profile set up, force them to do so immediately
+        if (session.needs_2fa && req.path !== '/setup-2fa') {
+            return res.redirect('/setup-2fa');
+        }
+        return next();
+    }
 
-    // 3. Fallbacks
     if (req.path.startsWith('/api/')) return res.status(401).json({ error: 'Authentication Required' });
     
-    // Redirect if they have NOT locked it yet
-    if (!ACCOUNTS[0].secret) return res.redirect('/setup-2fa');
-    
-    // Redirect default to Login Screen
     res.redirect('/login');
 });
 
@@ -146,7 +187,22 @@ dbConfigs.forEach(config => {
     }
 });
 
-// 1. Tracking Script Endpoint (Serve Script)
+// 0. Account Creation Endpoint (Authenticated Admins ONLY)
+app.post('/api/admin/users/create', async (req, res) => {
+    const { username, password } = req.body;
+    if (!username || !username.trim() || !password || !password.trim()) return res.status(400).json({ error: "Missing fields" });
+
+    const pool = pools['domain-hub'];
+    if (!pool) return res.status(500).json({ error: "Database offline" });
+
+    try {
+        await pool.query('INSERT INTO admin_users (username, password) VALUES ($1, $2)', [username.trim(), password.trim()]);
+        res.json({ success: true, message: "User added! They can log in and setup 2FA independently." });
+    } catch (e) {
+        if (e.message.includes('unique_violation') || e.message.includes('duplicate')) return res.status(400).json({ error: "Username already exists" });
+        res.status(500).json({ error: e.message });
+    }
+});
 app.get('/api/track.js', (req, res) => {
     const siteId = req.query.site || 'unknown';
     const host = req.get('host');

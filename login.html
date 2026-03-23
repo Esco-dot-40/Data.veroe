@@ -47,9 +47,10 @@
             });
 
             if (res.ok) {
+                const data = await res.json();
                 btn.innerText = "Success";
                 btn.style.background = "#00ff88";
-                setTimeout(() => window.location.href = '/', 600);
+                setTimeout(() => window.location.href = data.redirect || '/', 600);
             } else {
                 btn.innerText = "Sign In";
                 err.style.display = 'block';

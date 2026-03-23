@@ -163,6 +163,7 @@
                     <button class="tab-btn active" onclick="switchTab('heatmap')">Heatmap</button>
                     <button class="tab-btn" onclick="switchTab('logs')">Detailed Logs</button>
                     <button class="tab-btn" onclick="switchTab('installer')">Incorporate Code</button>
+                    <button class="tab-btn" onclick="switchTab('users')" style="border-radius: 0.5rem; border: 1px solid var(--primary); color: #fff; background: rgba(0,245,255,0.05);">+ Add Admin</button>
                 </div>
             </div>
 
@@ -196,6 +197,18 @@
                     <h3>Incorporate Analytics Engine</h3>
                     <p style="font-size: 0.9rem; color: var(--text-dim);">Copy and paste this snippet into the <code>&lt;head&gt;</code> of the target site to populate logs and heatmap data into this project dashboard.</p>
                     <div class="code-box" id="code-snippet">Loading...</div>
+                </div>
+
+                <!-- User Management -->
+                <div id="view-users" class="view">
+                    <h3>Provision Secondary Administrator Accounts</h3>
+                    <p style="font-size: 0.9rem; color: var(--text-dim); margin-bottom: 1.5rem;">Created users can authenticate immediately with simple access credentials, after which they will be cleanly prompted to bind their own automated 2FA setup independent of Railway hardcoding.</p>
+                    <form id="create-user-form" style="max-width:350px;">
+                        <input type="text" id="new-user" placeholder="Username" required style="width:100%; border:1px solid var(--glass-border); background:rgba(0,0,0,0.3); padding:0.75rem; border-radius:0.5rem; color:#fff; margin-bottom:0.75rem; outline: none;">
+                        <input type="password" id="new-pass" placeholder="Password" required style="width:100%; border:1px solid var(--glass-border); background:rgba(0,0,0,0.3); padding:0.75rem; border-radius:0.5rem; color:#fff; margin-bottom:0.75rem; outline: none;">
+                        <button type="submit" style="width:100%; background:var(--primary); color:#000; border:none; padding:0.75rem; border-radius:0.5rem; font-weight:600; cursor:pointer;">Provision Account</button>
+                        <div id="user-status" style="font-size:0.85rem; margin-top:0.75rem; font-weight: bold; color:var(--success);"></div>
+                    </form>
                 </div>
             </div>
         </div>
@@ -354,6 +367,27 @@
                 tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color: var(--error);">Fetch Fail: ${err.message}</td></tr>`;
             }
         }
+
+        // 0. Account Creation Form Handler
+        document.getElementById('create-user-form').onsubmit = async (e) => {
+            e.preventDefault();
+            const res = await fetch('/api/admin/users/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    username: document.getElementById('new-user').value,
+                    password: document.getElementById('new-pass').value
+                })
+            });
+            const data = await res.json();
+            const status = document.getElementById('user-status');
+            status.innerText = data.success ? "✅ Admin Added! Have them log in and setup 2FA." : ("❌ " + data.error);
+            status.style.color = data.success ? "var(--success)" : "var(--error)";
+            if (data.success) {
+                document.getElementById('new-user').value = '';
+                document.getElementById('new-pass').value = '';
+            }
+        };
 
         window.onload = init;
     </script>

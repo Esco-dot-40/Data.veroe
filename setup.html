@@ -15,20 +15,19 @@
 </head>
 <body>
     <div class="box">
-        <h2>🔒 PROVISION A 2FA SLOT</h2>
+        <h2>Secured Sign-In Setup (Admin)</h2>
         <div class="inst">
-            <b>1.</b> Scan this secure matrix with your secondary authenticator app (e.g. Duo Mobile). It will attach generically as "Veroix Core Analytics".
+            <b>1.</b> Scan this QR code with your Duo Mobile application.
         </div>
-        <img src="{{QR_IMG}}" alt="2FA Matrix">
+        <img src="{{QR_IMG}}" alt="2FA QR Code">
         <div class="inst">
-            <b>2.</b> Assign this 2FA Secret to exactly one of your 3 deployment slots by placing it within your Railway <b>Variables</b> tab natively:<br><br>
+            <b>2.</b> Copy and paste the secret key below into your Railway Variables panel under the relevant slot:<br><br>
             <ul style="margin: 0.5rem 0; padding-left: 1.2rem; color: #fff;">
-                <li><code>TWO_FACTOR_SECRET</code> (Slot 1 - Master)</li>
+                <li><code>TWO_FACTOR_SECRET</code> (Slot 1)</li>
                 <li><code>TWO_FACTOR_SECRET_2</code> (Slot 2)</li>
                 <li><code>TWO_FACTOR_SECRET_3</code> (Slot 3)</li>
             </ul>
         </div>
-        <br>
         <div class="code" id="secret">{{SECRET_KEY}}</div>
     </div>
 </body>

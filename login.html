@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Veroix Vault Login</title>
+    <title>Secured Sign-In</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
         body { background: #050508; color: #e1e1e6; font-family: 'Inter', sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; 
@@ -18,22 +18,22 @@
 </head>
 <body>
     <div class="box">
-        <h2>VEROIX SECURE</h2>
-        <form id="vault-form">
-            <input type="text" id="user" placeholder="SYS_ADMIN" required autocomplete="off">
-            <input type="password" id="pass" placeholder="MASTER KEY" required>
-            <input type="text" id="totp" placeholder="DUO TOKEN (6 DIGITS)" pattern="[0-9]*" maxlength="6" inputmode="numeric" required autocomplete="off">
-            <button type="submit">AUTHORIZE ACCESS</button>
-            <div class="error" id="err-msg">Access Denied. Signature invalid.</div>
+        <h2>Secured Sign-In (Admin)</h2>
+        <form id="auth-form">
+            <input type="text" id="user" placeholder="Username" required autocomplete="off">
+            <input type="password" id="pass" placeholder="Password" required>
+            <input type="text" id="totp" placeholder="2FA Code (6 Digits)" pattern="[0-9]*" maxlength="6" inputmode="numeric" required autocomplete="off">
+            <button type="submit">Sign In</button>
+            <div class="error" id="err-msg">Invalid credentials. Please try again.</div>
         </form>
     </div>
 
     <script>
-        document.getElementById('vault-form').onsubmit = async (e) => {
+        document.getElementById('auth-form').onsubmit = async (e) => {
             e.preventDefault();
             const btn = document.querySelector('button');
             const err = document.getElementById('err-msg');
-            btn.innerText = "AUTHENTICATING...";
+            btn.innerText = "Signing in...";
             err.style.display = 'none';
             
             const res = await fetch('/api/auth', {
@@ -47,11 +47,11 @@
             });
 
             if (res.ok) {
-                btn.innerText = "ACCESS GRANTED";
+                btn.innerText = "Success";
                 btn.style.background = "#00ff88";
                 setTimeout(() => window.location.href = '/', 600);
             } else {
-                btn.innerText = "AUTHORIZE ACCESS";
+                btn.innerText = "Sign In";
                 err.style.display = 'block';
             }
         };

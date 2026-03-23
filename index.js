@@ -21,14 +21,33 @@ app.use(cors());
 app.use(express.json());
 app.use(cookieParser());
 
-const adminUser = (process.env.ADMIN_USER || 'admin').replace(/['"]/g, '').trim();
-const adminPass = (process.env.ADMIN_PASS || 'password').replace(/['"]/g, '').trim();
+const ACCOUNTS = [
+    {
+        user: (process.env.ADMIN_USER || 'admin').replace(/['"]/g, '').trim(),
+        pass: (process.env.ADMIN_PASS || 'password').replace(/['"]/g, '').trim(),
+        secret: process.env.TWO_FACTOR_SECRET
+    },
+    {
+        user: (process.env.ADMIN_USER_2 || 'admin2').replace(/['"]/g, '').trim(),
+        pass: (process.env.ADMIN_PASS_2 || 'password').replace(/['"]/g, '').trim(),
+        secret: process.env.TWO_FACTOR_SECRET_2
+    },
+    {
+        user: (process.env.ADMIN_USER_3 || 'admin3').replace(/['"]/g, '').trim(),
+        pass: (process.env.ADMIN_PASS_3 || 'password').replace(/['"]/g, '').trim(),
+        secret: process.env.TWO_FACTOR_SECRET_3
+    }
+];
 
 const VALID_SESSIONS = new Set();
 
 // Setup 2FA Flow
 app.get('/setup-2fa', async (req, res) => {
-    if (process.env.TWO_FACTOR_SECRET) return res.redirect('/login');
+    // If the master lockdown is engaged, only authenticated nodes can provision new slots
+    if (ACCOUNTS[0].secret && !(req.cookies.auth_token && VALID_SESSIONS.has(req.cookies.auth_token))) {
+        return res.redirect('/login');
+    }
+
     const secret = speakeasy.generateSecret({ name: 'Veroix Analytics Central' });
     const qrCodeUrl = await qrcode.toDataURL(secret.otpauth_url);
     const html = fs.readFileSync(__dirname + '/setup.html', 'utf8')
@@ -46,12 +65,15 @@ app.get('/login', (req, res) => {
 // Login Verification API
 app.post('/api/auth', (req, res) => {
     const { user, pass, token } = req.body;
-    if (user !== adminUser || pass !== adminPass) return res.status(401).json({ error: 'Identity rejected' });
     
-    // If securely provisioned with 2FA, verify Duo Token securely
-    if (process.env.TWO_FACTOR_SECRET) {
+    // Verify Multi-Slot Profile Matches
+    const account = ACCOUNTS.find(a => a.user === user && a.pass === pass);
+    if (!account) return res.status(401).json({ error: 'Identity rejected' });
+    
+    // If securely provisioned with 2FA on this slot, verify Duo Token securely
+    if (account.secret) {
         const verified = speakeasy.totp.verify({
-            secret: process.env.TWO_FACTOR_SECRET,
+            secret: account.secret,
             encoding: 'base32',
             token: token
         });
@@ -77,7 +99,7 @@ app.use((req, res, next) => {
     if (req.path.startsWith('/api/')) return res.status(401).json({ error: 'Authentication Required' });
     
     // Redirect if they have NOT locked it yet
-    if (!process.env.TWO_FACTOR_SECRET) return res.redirect('/setup-2fa');
+    if (!ACCOUNTS[0].secret) return res.redirect('/setup-2fa');
     
     // Redirect default to Login Screen
     res.redirect('/login');

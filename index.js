@@ -47,21 +47,36 @@ app.get('/setup-2fa', async (req, res) => {
     if (!cToken || !VALID_SESSIONS.has(cToken)) return res.redirect('/login');
 
     const sessionData = VALID_SESSIONS.get(cToken);
-    
-    // Only DB accounts without 2FA bound to them get automated setups
-    if (!sessionData.db_match) return res.redirect('/'); 
-
-    const secret = speakeasy.generateSecret({ name: 'Veroix Analytics Central (' + sessionData.username + ')' });
-    
-    // Automatically SAVE the secret into the database FOR this DB user right now! No manual intervention.
     const pool = pools['domain-hub'];
+
+    let existingSecret = null;
+
+    // Check if account already has established 2FA to prevent overload mismatch
     if (pool) {
         try {
-            await pool.query('UPDATE admin_users SET two_factor_secret = $1 WHERE username = $2', [secret.base32, sessionData.username]);
-            sessionData.needs_2fa = false; // Resolved
-            VALID_SESSIONS.set(cToken, sessionData);
-        } catch (e) {
-            return res.send("DB Sync Error: " + e.message);
+            const { rows } = await pool.query('SELECT two_factor_secret FROM admin_users WHERE username = $1', [sessionData.username]);
+            if (rows.length > 0 && rows[0].two_factor_secret) {
+                existingSecret = rows[0].two_factor_secret;
+            }
+        } catch (e) { console.error("2FA Check Error:", e.message); }
+    }
+
+    let secret;
+    if (existingSecret) {
+        secret = { 
+            base32: existingSecret, 
+            otpauth_url: `otpauth://totp/Veroix Analytics Central (${sessionData.username})?secret=${existingSecret}&issuer=Veroix`
+        };
+    } else {
+        secret = speakeasy.generateSecret({ name: 'Veroix Analytics Central (' + sessionData.username + ')' });
+        if (pool && sessionData.db_match) {
+            try {
+                await pool.query('UPDATE admin_users SET two_factor_secret = $1 WHERE username = $2', [secret.base32, sessionData.username]);
+                sessionData.needs_2fa = false; // Resolved
+                VALID_SESSIONS.set(cToken, sessionData);
+            } catch (e) {
+                return res.send("DB Sync Error: " + e.message);
+            }
         }
     }
 

@@ -1,4 +1,20 @@
 node_modules/
 .env
+
+# Logs and Testing Output
 *.log
-results.json
+*.txt
+*.json
+!package.json
+!package-lock.json
+!railway.json
+
+# Scratch Files and Development Scripts
+check_*.js
+check_*.mjs
+test_*.mjs
+fix*.js
+extract.js
+mass_push.js
+inject_*.js
+*_output.html

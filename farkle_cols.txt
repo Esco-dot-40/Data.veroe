@@ -1,3 +1,0 @@
-[dotenv@17.3.1] injecting env (9) from .env -- tip: ΓÜÖ∩╕Å  specify custom .env file path with { path: '/custom/path/.env' }
-Farkle User Stats Columns:
-[]

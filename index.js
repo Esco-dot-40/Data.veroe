@@ -187,6 +187,24 @@ dbConfigs.forEach(config => {
     }
 });
 
+// 0. Auto-Seed Master Account to Database if empty
+async function seedMasterAccount() {
+    const pool = pools['domain-hub'];
+    if (!pool) return;
+    try {
+        const { rows } = await pool.query('SELECT COUNT(*) FROM admin_users');
+        if (parseInt(rows[0].count) === 0) {
+            console.log("🌱 Database is empty. Seeding master account variables into Admin table...");
+            const master = ACCOUNTS[0];
+            await pool.query('INSERT INTO admin_users (username, password) VALUES ($1, $2)', [master.user, master.pass]);
+            console.log("✅ Master account seeded successfully.");
+        }
+    } catch (e) {
+        console.error("⚠️  Failed to seed master account:", e.message);
+    }
+}
+setTimeout(seedMasterAccount, 3000); // Wait for pool fully initializing
+
 // 0. Account Creation Endpoint (Authenticated Admins ONLY)
 app.post('/api/admin/users/create', async (req, res) => {
     const { username, password } = req.body;

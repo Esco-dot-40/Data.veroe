@@ -77,17 +77,17 @@ app.get('/setup-2fa', async (req, res) => {
             otpauth_url: `otpauth://totp/Veroix:${sessionData.username}?secret=${existingSecret}&issuer=Veroix`
         };
     } else {
-        secret = speakeasy.generateSecret({ name: 'Veroix Analytics Central (' + sessionData.username + ')' });
-        secret.otpauth_url = `otpauth://totp/Veroix:${sessionData.username}?secret=${secret.base32}&issuer=Veroix`;
-        
-        if (pool && sessionData.db_match) {
-            try {
-                await pool.query('UPDATE admin_users SET two_factor_secret = $1 WHERE username = $2', [secret.base32, sessionData.username]);
-                sessionData.needs_2fa = false; // Resolved
-                VALID_SESSIONS.set(cToken, sessionData);
-            } catch (e) {
-                return res.send("DB Sync Error: " + e.message);
-            }
+        // Use existing temp secret so it doesn't rotate on page refreshes
+        if (sessionData.temp_secret) {
+             secret = {
+                 base32: sessionData.temp_secret,
+                 otpauth_url: `otpauth://totp/Veroix:${sessionData.username}?secret=${sessionData.temp_secret}&issuer=Veroix`
+             };
+        } else {
+             const s = speakeasy.generateSecret({ name: 'Veroix Analytics (' + sessionData.username + ')' });
+             secret = { base32: s.base32, otpauth_url: `otpauth://totp/Veroix:${sessionData.username}?secret=${s.base32}&issuer=Veroix` };
+             sessionData.temp_secret = secret.base32;
+             VALID_SESSIONS.set(cToken, sessionData);
         }
     }
 
@@ -100,6 +100,40 @@ app.get('/setup-2fa', async (req, res) => {
     } catch (e) {
         res.status(500).send(`<h1>QR Generation Error</h1><pre>${e.stack}</pre>`);
     }
+});
+
+// 1.5 Verify Setup Code API (Commit secret to DB ONLY after proving it work)
+app.post('/api/auth/verify-setup', async (req, res) => {
+    const cToken = req.cookies.auth_token;
+    if (!cToken || !VALID_SESSIONS.has(cToken)) return res.status(401).json({ error: 'Auth Required' });
+
+    const sessionData = VALID_SESSIONS.get(cToken);
+    const { token } = req.body;
+
+    if (!sessionData.temp_secret) return res.status(400).json({ error: 'No active setup found' });
+
+    const verified = speakeasy.totp.verify({
+        secret: sessionData.temp_secret,
+        encoding: 'base32',
+        token: token,
+        window: 2
+    });
+
+    if (!verified) return res.status(400).json({ error: 'Invalid Code. Please make sure you scanned the correct QR.' });
+
+    const pool = pools['domain-hub'];
+    if (pool && sessionData.db_match) {
+        try {
+            await pool.query('UPDATE admin_users SET two_factor_secret = $1 WHERE username = $2', [sessionData.temp_secret, sessionData.username]);
+            sessionData.needs_2fa = false;
+            delete sessionData.temp_secret;
+            VALID_SESSIONS.set(cToken, sessionData);
+            return res.json({ success: true });
+        } catch (e) {
+            return res.status(500).json({ error: 'DB Sync Error: ' + e.message });
+        }
+    }
+    res.json({ success: true }); // Fallback
 });
 
 // 2. Login UI

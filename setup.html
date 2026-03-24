@@ -117,7 +117,47 @@
                 <li><code>TWO_FACTOR_SECRET_2</code> (Slot 2)</li>
                 <li><code>TWO_FACTOR_SECRET_3</code> (Slot 3)</li>
             </ul>
+            <b>4.</b> Enter the code shown on your Authenticator to confirm:<br>
+            <form id="verify-form" style="margin-top: 0.5rem;">
+                <input type="text" id="verify-code" placeholder="6-digit Code" pattern="[0-9]*" maxlength="6" inputmode="numeric" required style="width: 100%; box-sizing: border-box; background: rgba(0,0,0,0.4); border: 1px solid rgba(0,245,255,0.2); padding: 1rem; color: #fff; font-family: 'Orbitron'; text-align: center; border-radius: 0.5rem; outline: none;">
+                <button type="submit" id="verify-btn" style="margin-top: 1rem; width: 100%; padding: 1rem; background: #00f5ff; font-family: 'Orbitron'; font-weight: bold; border-radius: 0.5rem; border: none; cursor: pointer; color: #000; transition: 0.2s;">Verify & Enable 2FA</button>
+                <div id="verify-msg" style="margin-top: 0.5rem; color: #ff3e3e; font-size: 0.85rem; display: none;">Invalid code. Try again.</div>
+            </form>
         </div>
     </div>
+
+    <script>
+        document.getElementById('verify-form').onsubmit = async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('verify-btn');
+            const msg = document.getElementById('verify-msg');
+            const code = document.getElementById('verify-code').value;
+            
+            btn.innerText = "Verifying...";
+            msg.style.display = 'none';
+            
+            try {
+                const res = await fetch('/api/auth/verify-setup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token: code })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    btn.innerText = "Confirmed!";
+                    btn.style.background = "#00ff88";
+                    setTimeout(() => window.location.href = '/', 600);
+                } else {
+                    btn.innerText = "Verify & Enable 2FA";
+                    msg.innerText = data.error || 'Invalid code. Try again.';
+                    msg.style.display = 'block';
+                }
+            } catch (err) {
+                btn.innerText = "Verify & Enable 2FA";
+                msg.innerText = "Error connecting to server.";
+                msg.style.display = 'block';
+            }
+        };
+    </script>
 </body>
 </html>

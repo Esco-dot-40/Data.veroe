@@ -1,141 +1,503 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
-    <title>2FA Setup</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Veroix — 2FA Setup</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap"
+        rel="stylesheet">
     <style>
-        body { 
-            background: #050508; 
-            color: #e1e1e6; 
-            font-family: 'Inter', sans-serif; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            height: 100vh; 
-            margin: 0; 
-            background-image: radial-gradient(circle at 50% 50%, #150a21, transparent);
-        }
-        .box { 
-            background: rgba(15,15,20,0.85); 
-            border: 1px solid rgba(255,255,255,0.04); 
-            padding: 3rem; 
-            border-radius: 2rem; 
-            backdrop-filter: blur(40px); 
-            text-align: center; 
-            max-width: 480px; 
-            box-shadow: 0 20px 60px rgba(0, 245, 255, 0.05), 0 0 100px rgba(138, 43, 226, 0.05); 
-            animation: float 4s ease-in-out infinite;
-        }
-        
-        @keyframes float {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-8px); }
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
 
-        h2 { font-family: 'Orbitron'; color: #00f5ff; text-shadow: 0 0 10px rgba(0,245,255,0.3); letter-spacing: 1px; }
+        :root {
+            --bg: #04040a;
+            --surface: rgba(12, 12, 20, 0.92);
+            --border: rgba(255, 255, 255, 0.06);
+            --primary: #00f5ff;
+            --success: #00ff88;
+            --error: #ff4466;
+            --text: #e8e8f0;
+            --text-dim: #6b6b80;
+        }
 
-        /* The Continuous Glowing Ring (Rolling Edge) around the QR container */
-        .qr-wrapper {
-            position: relative;
-            width: 220px;
-            height: 220px;
-            margin: 2rem auto;
-            border-radius: 1rem;
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'DM Sans', sans-serif;
+            min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            background: rgba(0,0,0,0.4);
+            padding: 2rem 1rem;
+            position: relative;
             overflow: hidden;
-            box-shadow: 0 0 30px rgba(0,245,255,0.15);
         }
 
-        .qr-wrapper::before {
+        body::before {
             content: '';
-            position: absolute;
-            width: 150%;
-            height: 150%;
-            background: conic-gradient(#00f5ff, #00ff88, #8a2be2, #00f5ff);
-            animation: spin 3s linear infinite;
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(ellipse 60% 50% at 30% 30%, rgba(0, 20, 50, 0.9) 0%, transparent 70%),
+                radial-gradient(ellipse 50% 60% at 70% 70%, rgba(30, 0, 60, 0.7) 0%, transparent 70%);
+            pointer-events: none;
         }
 
-        .qr-wrapper::after {
+        body::after {
             content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(0, 245, 255, 0.015) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 245, 255, 0.015) 1px, transparent 1px);
+            background-size: 60px 60px;
+            pointer-events: none;
+        }
+
+        .card {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            max-width: 480px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 1.75rem;
+            backdrop-filter: blur(30px);
+            overflow: hidden;
+            box-shadow:
+                0 0 0 1px rgba(0, 245, 255, 0.04),
+                0 30px 100px rgba(0, 0, 0, 0.7);
+        }
+
+        .card-header {
+            padding: 2rem 2rem 1.5rem;
+            text-align: center;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            background: rgba(0, 245, 255, 0.08);
+            border: 1px solid rgba(0, 245, 255, 0.15);
+            border-radius: 100px;
+            padding: 0.3rem 0.75rem;
+            font-size: 0.68rem;
+            font-weight: 600;
+            letter-spacing: 1px;
+            color: var(--primary);
+            text-transform: uppercase;
+            margin-bottom: 0.75rem;
+        }
+
+        .badge-dot {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: var(--primary);
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 0.4;
+                transform: scale(0.7);
+            }
+        }
+
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 600;
+            letter-spacing: 2px;
+            color: #fff;
+            margin-bottom: 0.3rem;
+        }
+
+        .welcome-user {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+        }
+
+        .welcome-user span {
+            color: var(--primary);
+            font-weight: 500;
+        }
+
+        /* Steps */
+        .steps-nav {
+            display: flex;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .step-tab {
+            flex: 1;
+            padding: 0.9rem;
+            text-align: center;
+            font-size: 0.72rem;
+            font-weight: 600;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            color: var(--text-dim);
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+            cursor: default;
+        }
+
+        .step-tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .step-tab.done {
+            color: var(--success);
+            border-bottom-color: var(--success);
+        }
+
+        /* Views */
+        .card-body {
+            padding: 1.75rem 2rem;
+        }
+
+        .view {
+            display: none;
+        }
+
+        .view.active {
+            display: block;
+        }
+
+        /* QR */
+        .qr-frame {
+            position: relative;
+            width: 190px;
+            height: 190px;
+            margin: 0 auto 1.5rem;
+        }
+
+        .qr-ring {
             position: absolute;
-            background: #050508;
-            inset: 3px;
-            border-radius: calc(1rem - 3px);
+            inset: -4px;
+            border-radius: 1rem;
+            background: conic-gradient(from 0deg, var(--primary), #7000ff, var(--success), var(--primary));
+            animation: spin 4s linear infinite;
+            z-index: 0;
         }
 
         @keyframes spin {
-            100% { transform: rotate(360deg); }
+            to {
+                transform: rotate(360deg);
+            }
         }
 
-        .qr-container {
-            position: relative;
-            z-index: 2;
-            width: 100%;
-            height: 100%;
+        .qr-inner {
+            position: absolute;
+            inset: 4px;
+            border-radius: calc(1rem - 4px);
+            background: #fff;
+            z-index: 1;
             display: flex;
             align-items: center;
             justify-content: center;
-            border-radius: 1rem;
             overflow: hidden;
         }
 
-        .qr-container svg { 
-            width: 190px !important; 
-            height: 190px !important; 
-            background: #fff; 
-            padding: 8px; 
-            border-radius: 0.5rem; 
-            box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
+        .qr-inner svg {
+            width: 100% !important;
+            height: 100% !important;
+            display: block;
         }
 
-        .code { background: #000; padding: 1rem; color: #00ff88; font-family: 'Orbitron', monospace; border-radius: 0.5rem; letter-spacing: 2px; border: 1px solid rgba(0,255,136,0.2); font-size: 1.1rem; word-break: break-all; word-wrap: break-word; white-space: pre-wrap; margin-top: 1rem; box-shadow: 0 2px 10px rgba(0,0,0,0.5); }
-        .inst { color: #8a8a93; font-size: 0.9rem; line-height: 1.6; text-align: left; }
+        .instructions {
+            font-size: 0.83rem;
+            color: var(--text-dim);
+            line-height: 1.65;
+        }
+
+        .instructions strong {
+            color: var(--text);
+            font-weight: 500;
+        }
+
+        .secret-box {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(0, 245, 255, 0.15);
+            border-radius: 0.6rem;
+            padding: 0.85rem 1rem;
+            font-family: 'Orbitron', monospace;
+            font-size: 0.75rem;
+            letter-spacing: 2px;
+            color: var(--primary);
+            word-break: break-all;
+            text-align: center;
+            margin: 0.75rem 0;
+            cursor: pointer;
+            transition: background 0.2s;
+            position: relative;
+        }
+
+        .secret-box:hover {
+            background: rgba(0, 245, 255, 0.05);
+        }
+
+        .secret-box::after {
+            content: 'Click to copy';
+            position: absolute;
+            bottom: -1.3rem;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.65rem;
+            color: var(--text-dim);
+            font-family: 'DM Sans', sans-serif;
+            letter-spacing: 0;
+        }
+
+        .secret-box.copied::after {
+            content: '✓ Copied!';
+            color: var(--success);
+        }
+
+        .divider {
+            height: 1px;
+            background: var(--border);
+            margin: 1.25rem 0;
+        }
+
+        /* Verify step */
+        .verify-field input {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid var(--border);
+            border-radius: 0.6rem;
+            padding: 1rem;
+            color: var(--text);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.4rem;
+            text-align: center;
+            letter-spacing: 8px;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            margin: 0.75rem 0;
+        }
+
+        .verify-field input:focus {
+            border-color: rgba(0, 245, 255, 0.4);
+            box-shadow: 0 0 0 3px rgba(0, 245, 255, 0.07);
+        }
+
+        .verify-label {
+            font-size: 0.72rem;
+            font-weight: 600;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            color: var(--text-dim);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 0.9rem;
+            border: none;
+            border-radius: 0.6rem;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.78rem;
+            font-weight: 600;
+            letter-spacing: 1.5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 0.5rem;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: #000;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: #30ffff;
+            box-shadow: 0 0 20px rgba(0, 245, 255, 0.35);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary.success {
+            background: var(--success);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--primary);
+            border: 1px solid rgba(0, 245, 255, 0.25);
+            margin-top: 0.4rem;
+        }
+
+        .btn-secondary:hover {
+            border-color: rgba(0, 245, 255, 0.5);
+        }
+
+        .error-msg {
+            background: rgba(255, 68, 102, 0.1);
+            border: 1px solid rgba(255, 68, 102, 0.25);
+            border-radius: 0.5rem;
+            padding: 0.65rem 0.9rem;
+            font-size: 0.8rem;
+            color: var(--error);
+            margin-bottom: 0.75rem;
+            display: none;
+        }
+
+        .error-msg.visible {
+            display: block;
+        }
+
+        .success-state {
+            text-align: center;
+            padding: 1rem 0;
+        }
+
+        .success-icon {
+            font-size: 3rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .success-state h3 {
+            font-family: 'Orbitron', sans-serif;
+            color: var(--success);
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+            margin-bottom: 0.5rem;
+        }
+
+        .success-state p {
+            font-size: 0.82rem;
+            color: var(--text-dim);
+        }
     </style>
 </head>
+
 <body>
-    <div class="box">
-        <h2>Secured Sign-In Setup (Admin)</h2>
-        <div class="inst">
-            <b>1.</b> Scan this QR code with an Authenticator app (Duo, Google Authenticator, Authy).
+    <div class="card">
+        <div class="card-header">
+            <div class="badge"><span class="badge-dot"></span> First Login</div>
+            <h1>SECURE YOUR ACCOUNT</h1>
+            <p class="welcome-user">Setting up 2FA for <span>{{USERNAME}}</span></p>
         </div>
-         <div class="qr-wrapper">
-             <div class="qr-container">
-                {{QR_SVG}}
-             </div>
-         </div>
-        <div class="inst">
-            <b>2.</b> 💡 No camera? Enter this <b>Setup Key</b> manually into your Authenticator app:<br>
-            <div class="code" style="margin-top: 0.5rem; color: #00f5ff;">{{SECRET_KEY}}</div><br>
-            
-            <b>3.</b> Double-check your setup: store this variable in Railway panel just in case:
-            <ul style="margin: 0.5rem 0; padding-left: 1.2rem; color: #fff;">
-                <li><code>TWO_FACTOR_SECRET</code> (Slot 1)</li>
-                <li><code>TWO_FACTOR_SECRET_2</code> (Slot 2)</li>
-                <li><code>TWO_FACTOR_SECRET_3</code> (Slot 3)</li>
-            </ul>
-            <b>4.</b> Enter the code shown on your Authenticator to confirm:<br>
-            <form id="verify-form" style="margin-top: 0.5rem;">
-                <input type="text" id="verify-code" placeholder="6-digit Code" pattern="[0-9]*" maxlength="6" inputmode="numeric" required style="width: 100%; box-sizing: border-box; background: rgba(0,0,0,0.4); border: 1px solid rgba(0,245,255,0.2); padding: 1rem; color: #fff; font-family: 'Orbitron'; text-align: center; border-radius: 0.5rem; outline: none;">
-                <button type="submit" id="verify-btn" style="margin-top: 1rem; width: 100%; padding: 1rem; background: #00f5ff; font-family: 'Orbitron'; font-weight: bold; border-radius: 0.5rem; border: none; cursor: pointer; color: #000; transition: 0.2s;">Verify & Enable 2FA</button>
-                <div id="verify-msg" style="margin-top: 0.5rem; color: #ff3e3e; font-size: 0.85rem; display: none;">Invalid code. Try again.</div>
-            </form>
+
+        <div class="steps-nav">
+            <div class="step-tab active" id="tab-1">1 · Scan QR</div>
+            <div class="step-tab" id="tab-2">2 · Verify</div>
+        </div>
+
+        <div class="card-body">
+            <div class="error-msg" id="error-msg"></div>
+
+            <!-- Step 1: Show QR -->
+            <div class="view active" id="view-qr">
+                <div class="qr-frame">
+                    <div class="qr-ring"></div>
+                    <div class="qr-inner">{{QR_SVG}}</div>
+                </div>
+
+                <div class="instructions">
+                    <strong>Scan the QR code</strong> with your authenticator app — Google Authenticator, Authy, or Duo
+                    Mobile all work.
+                </div>
+
+                <div class="divider"></div>
+
+                <div class="instructions">
+                    <strong>No camera?</strong> Enter this setup key manually in your app:
+                </div>
+
+                <div class="secret-box" id="secret-copy" title="Click to copy">{{SECRET_KEY}}</div>
+
+                <div style="margin-top: 2rem;">
+                    <button class="btn btn-primary" onclick="goToVerify()">DONE, VERIFY CODE →</button>
+                </div>
+            </div>
+
+            <!-- Step 2: Verify -->
+            <div class="view" id="view-verify">
+                <div class="verify-label">Enter your 6-digit code</div>
+                <div class="verify-field">
+                    <input type="text" id="verify-code" placeholder="000000" pattern="[0-9]*" maxlength="6"
+                        inputmode="numeric" autocomplete="one-time-code">
+                </div>
+                <div class="instructions" style="margin-bottom: 1rem;">
+                    Open your authenticator app and enter the 6-digit code shown for <strong>Veroix</strong>.
+                </div>
+                <button class="btn btn-primary" id="verify-btn" onclick="submitVerify()">CONFIRM & ENABLE 2FA</button>
+                <button class="btn btn-secondary" onclick="goToQR()">← Back to QR code</button>
+            </div>
+
+            <!-- Success -->
+            <div class="view" id="view-success">
+                <div class="success-state">
+                    <div class="success-icon">✓</div>
+                    <h3>2FA ACTIVATED</h3>
+                    <p>Your account is now secured. Redirecting to dashboard...</p>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
-        document.getElementById('verify-form').onsubmit = async (e) => {
-            e.preventDefault();
+        const showError = (msg) => {
+            const el = document.getElementById('error-msg');
+            el.textContent = msg;
+            el.classList.add('visible');
+        };
+        const hideError = () => document.getElementById('error-msg').classList.remove('visible');
+
+        function setTab(step) {
+            document.getElementById('tab-1').className = 'step-tab ' + (step > 1 ? 'done' : 'active');
+            document.getElementById('tab-2').className = 'step-tab ' + (step === 2 ? 'active' : step > 2 ? 'done' : '');
+        }
+
+        function showView(id) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            hideError();
+        }
+
+        function goToVerify() {
+            setTab(2);
+            showView('view-verify');
+            setTimeout(() => document.getElementById('verify-code').focus(), 100);
+        }
+
+        function goToQR() {
+            setTab(1);
+            showView('view-qr');
+        }
+
+        async function submitVerify() {
+            const code = document.getElementById('verify-code').value.trim();
+            if (code.length !== 6) return showError('Please enter the 6-digit code from your authenticator app.');
+
             const btn = document.getElementById('verify-btn');
-            const msg = document.getElementById('verify-msg');
-            const code = document.getElementById('verify-code').value;
-            
-            btn.innerText = "Verifying...";
-            msg.style.display = 'none';
-            
+            btn.textContent = 'Verifying...';
+            btn.disabled = true;
+            hideError();
+
             try {
                 const res = await fetch('/api/auth/verify-setup', {
                     method: 'POST',
@@ -143,21 +505,43 @@
                     body: JSON.stringify({ token: code })
                 });
                 const data = await res.json();
+
                 if (data.success) {
-                    btn.innerText = "Confirmed!";
-                    btn.style.background = "#00ff88";
-                    setTimeout(() => window.location.href = '/', 600);
+                    showView('view-success');
+                    setTimeout(() => window.location.href = '/', 1800);
                 } else {
-                    btn.innerText = "Verify & Enable 2FA";
-                    msg.innerText = data.error || 'Invalid code. Try again.';
-                    msg.style.display = 'block';
+                    showError(data.error || 'Code invalid. Wait for the next code and try again.');
+                    document.getElementById('verify-code').value = '';
+                    document.getElementById('verify-code').focus();
                 }
-            } catch (err) {
-                btn.innerText = "Verify & Enable 2FA";
-                msg.innerText = "Error connecting to server.";
-                msg.style.display = 'block';
+            } catch (e) {
+                showError('Connection error. Please try again.');
+            } finally {
+                btn.textContent = 'CONFIRM & ENABLE 2FA';
+                btn.disabled = false;
             }
-        };
+        }
+
+        // Auto-verify on 6 digits
+        document.getElementById('verify-code').addEventListener('input', e => {
+            const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+            e.target.value = val;
+            if (val.length === 6) submitVerify();
+        });
+
+        document.getElementById('verify-code').addEventListener('keydown', e => {
+            if (e.key === 'Enter') submitVerify();
+        });
+
+        // Copy secret
+        document.getElementById('secret-copy').addEventListener('click', function () {
+            const text = this.textContent.trim();
+            navigator.clipboard.writeText(text).then(() => {
+                this.classList.add('copied');
+                setTimeout(() => this.classList.remove('copied'), 2000);
+            });
+        });
     </script>
 </body>
+
 </html>

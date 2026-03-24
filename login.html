@@ -1,61 +1,435 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
-    <title>Secured Sign-In</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Veroix — Secure Sign In</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap"
+        rel="stylesheet">
     <style>
-        body { background: #050508; color: #e1e1e6; font-family: 'Inter', sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; 
-               background-image: radial-gradient(circle at 10% 10%, #170724, transparent), radial-gradient(circle at 90% 90%, #031525, transparent); }
-        .box { background: rgba(20,20,25,0.7); border: 1px solid rgba(255,255,255,0.05); padding: 3rem; border-radius: 1rem; backdrop-filter: blur(20px); text-align: center; width: 400px; box-shadow: 0 10px 40px rgba(0,245,255,0.1); }
-        h2 { font-family: 'Orbitron'; color: #00f5ff; letter-spacing: 2px; margin-bottom: 2rem; }
-        input { width: 100%; border-radius: 0.5rem; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); padding: 1rem; margin-bottom: 1rem; color: #fff; font-family: 'Orbitron'; box-sizing: border-box; outline: none; }
-        input:focus { border-color: #00f5ff; box-shadow: 0 0 8px rgba(0,245,255,0.3); }
-        button { width: 100%; background: #00f5ff; color: #000; border: none; padding: 1rem; border-radius: 0.5rem; font-weight: 600; font-family: 'Orbitron'; cursor: pointer; transition: 0.2s; letter-spacing: 1px; }
-        button:hover { background: #70ffb5; box-shadow: 0 0 15px rgba(112,255,181,0.5); }
-        .error { color: #ff3e3e; font-size: 0.85rem; margin-top: 1rem; display: none; }
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg: #04040a;
+            --surface: rgba(12, 12, 20, 0.92);
+            --border: rgba(255, 255, 255, 0.06);
+            --primary: #00f5ff;
+            --primary-dim: rgba(0, 245, 255, 0.12);
+            --success: #00ff88;
+            --error: #ff4466;
+            --text: #e8e8f0;
+            --text-dim: #6b6b80;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'DM Sans', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Atmospheric background */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(ellipse 60% 50% at 20% 20%, rgba(0, 30, 60, 0.8) 0%, transparent 70%),
+                radial-gradient(ellipse 50% 60% at 80% 80%, rgba(20, 0, 50, 0.7) 0%, transparent 70%),
+                radial-gradient(ellipse 40% 40% at 50% 50%, rgba(0, 10, 30, 0.5) 0%, transparent 100%);
+            pointer-events: none;
+        }
+
+        /* Grid lines */
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(0, 245, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 245, 255, 0.02) 1px, transparent 1px);
+            background-size: 60px 60px;
+            pointer-events: none;
+        }
+
+        .card {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            max-width: 420px;
+            padding: 2.5rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 1.5rem;
+            backdrop-filter: blur(30px);
+            box-shadow:
+                0 0 0 1px rgba(0, 245, 255, 0.04),
+                0 20px 80px rgba(0, 0, 0, 0.6),
+                inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        }
+
+        .logo-area {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .logo-mark {
+            width: 52px;
+            height: 52px;
+            margin: 0 auto 1rem;
+            border-radius: 14px;
+            background: linear-gradient(135deg, rgba(0, 245, 255, 0.15), rgba(112, 0, 255, 0.15));
+            border: 1px solid rgba(0, 245, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+        }
+
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.05rem;
+            font-weight: 600;
+            letter-spacing: 3px;
+            background: linear-gradient(90deg, #fff 30%, var(--primary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            font-size: 0.78rem;
+            color: var(--text-dim);
+            margin-top: 0.3rem;
+            letter-spacing: 0.5px;
+        }
+
+        /* Step indicator */
+        .steps {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.75rem;
+        }
+
+        .step-dot {
+            flex: 1;
+            height: 2px;
+            border-radius: 2px;
+            background: rgba(255, 255, 255, 0.08);
+            transition: background 0.4s;
+        }
+
+        .step-dot.active {
+            background: var(--primary);
+            box-shadow: 0 0 8px rgba(0, 245, 255, 0.5);
+        }
+
+        .step-dot.done {
+            background: var(--success);
+        }
+
+        /* Fields */
+        .field {
+            margin-bottom: 0.85rem;
+            position: relative;
+        }
+
+        .field label {
+            display: block;
+            font-size: 0.72rem;
+            font-weight: 500;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            color: var(--text-dim);
+            margin-bottom: 0.4rem;
+        }
+
+        .field input {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid var(--border);
+            border-radius: 0.6rem;
+            padding: 0.85rem 1rem;
+            color: var(--text);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.9rem;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .field input:focus {
+            border-color: rgba(0, 245, 255, 0.4);
+            box-shadow: 0 0 0 3px rgba(0, 245, 255, 0.07);
+        }
+
+        .field input.otp {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.2rem;
+            text-align: center;
+            letter-spacing: 6px;
+        }
+
+        .field-hint {
+            font-size: 0.72rem;
+            color: var(--text-dim);
+            margin-top: 0.35rem;
+            padding-left: 0.1rem;
+        }
+
+        /* Button */
+        .btn {
+            width: 100%;
+            padding: 0.9rem;
+            border: none;
+            border-radius: 0.6rem;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.78rem;
+            font-weight: 600;
+            letter-spacing: 1.5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 0.5rem;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: #000;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: #30ffff;
+            box-shadow: 0 0 20px rgba(0, 245, 255, 0.35);
+            transform: translateY(-1px);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-primary.success {
+            background: var(--success);
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--text-dim);
+            border: 1px solid var(--border);
+            font-size: 0.72rem;
+            margin-top: 0.5rem;
+        }
+
+        .btn-ghost:hover {
+            border-color: rgba(255, 255, 255, 0.15);
+            color: var(--text);
+        }
+
+        /* Error */
+        .error-msg {
+            background: rgba(255, 68, 102, 0.1);
+            border: 1px solid rgba(255, 68, 102, 0.25);
+            border-radius: 0.5rem;
+            padding: 0.7rem 0.9rem;
+            font-size: 0.8rem;
+            color: var(--error);
+            margin-bottom: 0.75rem;
+            display: none;
+        }
+
+        .error-msg.visible {
+            display: block;
+        }
+
+        /* Views */
+        .view {
+            display: none;
+        }
+
+        .view.active {
+            display: block;
+        }
+
+        .otp-note {
+            font-size: 0.78rem;
+            color: var(--text-dim);
+            text-align: center;
+            margin-top: 0.75rem;
+            line-height: 1.5;
+        }
     </style>
 </head>
+
 <body>
-    <div class="box">
-        <h2>Secured Sign-In (Admin)</h2>
-        <form id="auth-form">
-            <input type="text" id="user" placeholder="Username" required autocomplete="off">
-            <input type="password" id="pass" placeholder="Password" required>
-            <input type="text" id="totp" placeholder="2FA Code (6 Digits) [Leave blank for first login]" pattern="[0-9]*" maxlength="6" inputmode="numeric" autocomplete="off">
-            <button type="submit">Sign In</button>
-            <div class="error" id="err-msg">Invalid credentials. Please try again.</div>
-        </form>
+    <div class="card">
+        <div class="logo-area">
+            <div class="logo-mark">◈</div>
+            <h1>VEROIX CORE</h1>
+            <p class="subtitle" id="card-subtitle">Analytics Intelligence Platform</p>
+        </div>
+
+        <div class="steps">
+            <div class="step-dot active" id="step1"></div>
+            <div class="step-dot" id="step2"></div>
+        </div>
+
+        <div class="error-msg" id="error-msg"></div>
+
+        <!-- Step 1: Credentials -->
+        <div class="view active" id="view-creds">
+            <div class="field">
+                <label>Username</label>
+                <input type="text" id="user" placeholder="Enter username" autocomplete="username" autofocus>
+            </div>
+            <div class="field">
+                <label>Password</label>
+                <input type="password" id="pass" placeholder="Enter password" autocomplete="current-password">
+            </div>
+            <button class="btn btn-primary" id="btn-creds">AUTHENTICATE</button>
+        </div>
+
+        <!-- Step 2: 2FA -->
+        <div class="view" id="view-2fa">
+            <div class="field">
+                <label>Authenticator Code</label>
+                <input type="text" id="totp" class="otp" placeholder="000000" pattern="[0-9]*" maxlength="6"
+                    inputmode="numeric" autocomplete="one-time-code">
+                <p class="field-hint">Enter the 6-digit code from your authenticator app</p>
+            </div>
+            <button class="btn btn-primary" id="btn-2fa">VERIFY</button>
+            <button class="btn btn-ghost" id="btn-back">← Back</button>
+            <p class="otp-note">Code rotates every 30 seconds. If it fails, wait for the next one.</p>
+        </div>
     </div>
 
     <script>
-        document.getElementById('auth-form').onsubmit = async (e) => {
-            e.preventDefault();
-            const btn = document.querySelector('button');
-            const err = document.getElementById('err-msg');
-            btn.innerText = "Signing in...";
-            err.style.display = 'none';
-            
-            const res = await fetch('/api/auth', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    user: document.getElementById('user').value,
-                    pass: document.getElementById('pass').value,
-                    token: document.getElementById('totp').value
-                })
-            });
+        const showError = (msg) => {
+            const el = document.getElementById('error-msg');
+            el.textContent = msg;
+            el.classList.add('visible');
+        };
+        const hideError = () => document.getElementById('error-msg').classList.remove('visible');
 
-            if (res.ok) {
+        const setStep = (n) => {
+            document.getElementById('step1').className = 'step-dot ' + (n >= 1 ? (n > 1 ? 'done' : 'active') : '');
+            document.getElementById('step2').className = 'step-dot ' + (n >= 2 ? 'active' : '');
+        };
+
+        const showView = (id) => {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            hideError();
+        };
+
+        // Step 1 — Credentials
+        const btnCreds = document.getElementById('btn-creds');
+        const tryCredsLogin = async () => {
+            const user = document.getElementById('user').value.trim();
+            const pass = document.getElementById('pass').value;
+            if (!user || !pass) return showError('Please enter your username and password.');
+
+            btnCreds.textContent = 'Authenticating...';
+            btnCreds.disabled = true;
+            hideError();
+
+            try {
+                const res = await fetch('/api/auth', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user, pass, token: '' })
+                });
                 const data = await res.json();
-                btn.innerText = "Success";
-                btn.style.background = "#00ff88";
-                setTimeout(() => window.location.href = data.redirect || '/', 600);
-            } else {
-                btn.innerText = "Sign In";
-                err.style.display = 'block';
+
+                if (res.ok && data.success) {
+                    btnCreds.textContent = 'Access Granted';
+                    btnCreds.classList.add('success');
+                    setTimeout(() => window.location.href = data.redirect || '/', 500);
+                } else if (data.needs_token) {
+                    // Has 2FA — go to step 2
+                    setStep(2);
+                    showView('view-2fa');
+                    document.getElementById('card-subtitle').textContent = 'Two-Factor Verification';
+                    setTimeout(() => document.getElementById('totp').focus(), 100);
+                } else {
+                    showError(data.error || 'Authentication failed. Check your credentials.');
+                }
+            } catch (e) {
+                showError('Connection error. Please try again.');
+            } finally {
+                btnCreds.textContent = 'AUTHENTICATE';
+                btnCreds.disabled = false;
+                btnCreds.classList.remove('success');
             }
         };
+
+        btnCreds.addEventListener('click', tryCredsLogin);
+        document.getElementById('pass').addEventListener('keydown', e => { if (e.key === 'Enter') tryCredsLogin(); });
+        document.getElementById('user').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('pass').focus(); });
+
+        // Step 2 — 2FA
+        const btn2fa = document.getElementById('btn-2fa');
+        const try2faLogin = async () => {
+            const user = document.getElementById('user').value.trim();
+            const pass = document.getElementById('pass').value;
+            const token = document.getElementById('totp').value.trim();
+            if (token.length !== 6) return showError('Enter your 6-digit code.');
+
+            btn2fa.textContent = 'Verifying...';
+            btn2fa.disabled = true;
+            hideError();
+
+            try {
+                const res = await fetch('/api/auth', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user, pass, token })
+                });
+                const data = await res.json();
+
+                if (res.ok && data.success) {
+                    btn2fa.textContent = '✓ Verified';
+                    btn2fa.classList.add('success');
+                    setTimeout(() => window.location.href = data.redirect || '/', 500);
+                } else {
+                    showError(data.error || 'Invalid code. Try again.');
+                    document.getElementById('totp').value = '';
+                    document.getElementById('totp').focus();
+                }
+            } catch (e) {
+                showError('Connection error. Please try again.');
+            } finally {
+                btn2fa.textContent = 'VERIFY';
+                btn2fa.disabled = false;
+            }
+        };
+
+        btn2fa.addEventListener('click', try2faLogin);
+        document.getElementById('totp').addEventListener('keydown', e => { if (e.key === 'Enter') try2faLogin(); });
+        document.getElementById('totp').addEventListener('input', e => {
+            const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+            e.target.value = val;
+            if (val.length === 6) try2faLogin();
+        });
+
+        document.getElementById('btn-back').addEventListener('click', () => {
+            setStep(1);
+            showView('view-creds');
+            document.getElementById('card-subtitle').textContent = 'Analytics Intelligence Platform';
+            document.getElementById('totp').value = '';
+        });
     </script>
 </body>
+
 </html>

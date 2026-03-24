@@ -355,9 +355,11 @@
                 if (res.ok && data.success) {
                     btnCreds.textContent = 'Access Granted';
                     btnCreds.classList.add('success');
-                    setTimeout(() => window.location.href = data.redirect || '/', 500);
+                    setTimeout(() => {
+                        const red = data.redirect || '/';
+                        window.location.href = red + (red.includes('?') ? '&' : '?') + 'v=' + Date.now();
+                    }, 500);
                 } else if (data.needs_token) {
-                    // Has 2FA — go to step 2
                     setStep(2);
                     showView('view-2fa');
                     document.getElementById('card-subtitle').textContent = 'Two-Factor Verification';

@@ -65,10 +65,12 @@ app.get('/setup-2fa', async (req, res) => {
     if (existingSecret) {
         secret = { 
             base32: existingSecret, 
-            otpauth_url: `otpauth://totp/Veroix Analytics Central (${sessionData.username})?secret=${existingSecret}&issuer=Veroix`
+            otpauth_url: `otpauth://totp/Veroix:${sessionData.username}?secret=${existingSecret}&issuer=Veroix`
         };
     } else {
         secret = speakeasy.generateSecret({ name: 'Veroix Analytics Central (' + sessionData.username + ')' });
+        secret.otpauth_url = `otpauth://totp/Veroix:${sessionData.username}?secret=${secret.base32}&issuer=Veroix`;
+        
         if (pool && sessionData.db_match) {
             try {
                 await pool.query('UPDATE admin_users SET two_factor_secret = $1 WHERE username = $2', [secret.base32, sessionData.username]);
@@ -126,7 +128,8 @@ app.post('/api/auth', async (req, res) => {
         const verified = speakeasy.totp.verify({
             secret: account.secret,
             encoding: 'base32',
-            token: token
+            token: token,
+            window: 1
         });
         if (!verified) return res.status(401).json({ error: 'Token invalid' });
     }

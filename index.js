@@ -82,11 +82,15 @@ app.get('/setup-2fa', async (req, res) => {
         }
     }
 
-    const qrSvg = await qrcode.toString(secret.otpauth_url, { type: 'svg' });
-    const html = fs.readFileSync(__dirname + '/setup.html', 'utf8')
-                .replace('{{QR_SVG}}', qrSvg)
-                .replace('{{SECRET_KEY}}', secret.base32);
-    res.send(html);
+    try {
+        const qrSvg = await qrcode.toString(secret.otpauth_url, { type: 'svg' });
+        const html = fs.readFileSync(__dirname + '/setup.html', 'utf8')
+                    .replace('{{QR_SVG}}', qrSvg)
+                    .replace('{{SECRET_KEY}}', secret.base32);
+        res.send(html);
+    } catch (e) {
+        res.status(500).send(`<h1>QR Generation Error</h1><pre>${e.stack}</pre>`);
+    }
 });
 
 // 2. Login UI

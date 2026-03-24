@@ -22,7 +22,7 @@
         <form id="auth-form">
             <input type="text" id="user" placeholder="Username" required autocomplete="off">
             <input type="password" id="pass" placeholder="Password" required>
-            <input type="text" id="totp" placeholder="2FA Code (6 Digits)" pattern="[0-9]*" maxlength="6" inputmode="numeric" required autocomplete="off">
+            <input type="text" id="totp" placeholder="2FA Code (6 Digits) [Leave blank for first login]" pattern="[0-9]*" maxlength="6" inputmode="numeric" autocomplete="off">
             <button type="submit">Sign In</button>
             <div class="error" id="err-msg">Invalid credentials. Please try again.</div>
         </form>

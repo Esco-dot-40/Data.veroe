@@ -214,6 +214,41 @@ async function seedMasterAccount() {
     const pool = pools['domain-hub'];
     if (!pool) return;
     try {
+        // Ensure tables exist before querying
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS admin_users (
+                id SERIAL PRIMARY KEY,
+                username VARCHAR(100) UNIQUE NOT NULL,
+                password VARCHAR(255) NOT NULL,
+                two_factor_secret TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        // Create visitor logs central table too if needed
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS visitor_logs (
+                id SERIAL PRIMARY KEY,
+                timestamp TIMESTAMP NOT NULL,
+                site_label VARCHAR(100) NOT NULL,
+                ip VARCHAR(100),
+                city VARCHAR(100),
+                region VARCHAR(100),
+                country VARCHAR(100),
+                country_code VARCHAR(10),
+                isp VARCHAR(150),
+                lat FLOAT,
+                lon FLOAT,
+                timezone VARCHAR(50),
+                user_agent TEXT,
+                screen_res VARCHAR(50),
+                referrer TEXT,
+                language VARCHAR(100),
+                zip VARCHAR(20),
+                org VARCHAR(150)
+            )
+        `);
+
         const { rows } = await pool.query('SELECT COUNT(*) FROM admin_users');
         if (parseInt(rows[0].count) === 0) {
             console.log("🌱 Database is empty. Seeding master account variables into Admin table...");

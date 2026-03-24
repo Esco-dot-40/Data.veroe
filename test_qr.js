@@ -1,23 +1,35 @@
 const speakeasy = require('speakeasy');
 const qrcode = require('qrcode');
 const fs = require('fs');
+const path = require('path');
 
-async function test() {
+async function test_svg() {
     try {
-        const secret = speakeasy.generateSecret({ name: 'Test' });
-        const qr = await qrcode.toDataURL(secret.otpauth_url);
-        console.log("QR Length:", qr.length);
-        console.log("Starts with:", qr.substring(0, 30));
+        const secret = speakeasy.generateSecret({ name: 'Veroix Analytics Central (test_user)' });
+        secret.otpauth_url = `otpauth://totp/Veroix:test_user?secret=${secret.base32}&issuer=Veroix`;
         
-        let html = fs.readFileSync('setup.html', 'utf8');
-        html = html.replace('{{QR_IMG}}', qr).replace('{{SECRET_KEY}}', secret.base32);
+        // Generate SVG string just like index.js
+        const qrSvg = await qrcode.toString(secret.otpauth_url, { type: 'svg' });
+        console.log("SVG Length:", qrSvg.length);
+
+        const templatePath = path.join(__dirname, 'setup.html');
+        let html = fs.readFileSync(templatePath, 'utf8');
         
-        if (html.includes('{{QR_IMG}}')) {
-            console.log("❌ Replace failed!");
+        // Replace correct token {{QR_SVG}} instead of {{QR_IMG}}
+        html = html.replace('{{QR_SVG}}', qrSvg)
+                   .replace('{{SECRET_KEY}}', secret.base32);
+
+        if (html.includes('{{QR_SVG}}')) {
+             console.log("❌ SVG Replace failed!");
         } else {
-            console.log("✅ Replace successful!");
+             console.log("✅ SVG Replace successful!");
         }
-    } catch (e) { console.error(e); }
+        
+        fs.writeFileSync('output-test.html', html);
+        console.log("Wrote fully rendered page to output-test.html for debugging.");
+    } catch (e) {
+        console.error("Test Error:", e);
+    }
 }
 
-test();
+test_svg();

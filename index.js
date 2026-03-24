@@ -39,6 +39,15 @@ const ACCOUNTS = [
     }
 ];
 
+app.get('/debug-path', (req, res) => {
+    const p = require('path').join(__dirname, 'login.html');
+    res.json({
+        __dirname: __dirname,
+        resolvedPath: p,
+        existsSync: require('fs').existsSync(p)
+    });
+});
+
 const VALID_SESSIONS = new Map(); // token => { username, db_match, needs_2fa }
 
 // 1. Setup 2FA Flow (Automated Save into Database)
@@ -84,7 +93,7 @@ app.get('/setup-2fa', async (req, res) => {
 
     try {
         const qrSvg = await qrcode.toString(secret.otpauth_url, { type: 'svg' });
-        const html = fs.readFileSync(__dirname + '/setup.html', 'utf8')
+        const html = fs.readFileSync(require('path').join(__dirname, 'setup.html'), 'utf8')
                     .replace('{{QR_SVG}}', qrSvg)
                     .replace('{{SECRET_KEY}}', secret.base32);
         res.send(html);
@@ -99,7 +108,7 @@ app.get('/login', (req, res) => {
         const session = VALID_SESSIONS.get(req.cookies.auth_token);
         if (!session.needs_2fa) return res.redirect('/');
     }
-    res.sendFile(__dirname + '/login.html');
+    res.sendFile('login.html', { root: __dirname });
 });
 
 // 3. Login Verification API
@@ -482,7 +491,7 @@ app.get('/api/stats', async (req, res) => {
     res.json(combined);
 });
 
-app.get('/', (req, res) => res.sendFile(__dirname + '/index.html'));
+app.get('/', (req, res) => res.sendFile('index.html', { root: __dirname }));
 
 ;
 

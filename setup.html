@@ -9,7 +9,8 @@
         .box { background: rgba(20,20,25,0.7); border: 1px solid rgba(255,255,255,0.05); padding: 3rem; border-radius: 1rem; backdrop-filter: blur(20px); text-align: center; max-width: 550px; box-shadow: 0 10px 40px rgba(0,245,255,0.1); }
         h2 { font-family: 'Orbitron'; color: #00f5ff; }
         .code { background: #000; padding: 1rem; color: #00ff88; font-family: monospace; border-radius: 0.5rem; letter-spacing: 2px; border: 1px solid rgba(0,255,136,0.2); font-size: 1.2rem; word-break: break-all; word-wrap: break-word; white-space: pre-wrap; margin-top: 1rem; }
-        img { border-radius: 0.5rem; border: 2px solid rgba(255,255,255,0.1); padding: 1rem; background: #fff; margin: 1.5rem 0; width: 200px; }
+        .qr-container { border-radius: 0.5rem; border: 2px solid rgba(255,255,255,0.1); padding: 1rem; background: #fff; margin: 1.5rem auto; width: 200px; display: flex; align-items: center; justify-content: center; }
+        .qr-container svg { width: 100%; height: auto; }
         .inst { color: #8a8a93; font-size: 0.9rem; line-height: 1.6; text-align: left; }
     </style>
 </head>
@@ -19,7 +20,9 @@
         <div class="inst">
             <b>1.</b> Scan this QR code with your Duo Mobile application.
         </div>
-        <img src="{{QR_IMG}}" alt="2FA QR Code">
+         <div class="qr-container">
+            {{QR_SVG}}
+         </div>
         <div class="inst">
             <b>2.</b> Copy and paste the secret key below into your Railway Variables panel under the relevant slot:<br><br>
             <ul style="margin: 0.5rem 0; padding-left: 1.2rem; color: #fff;">

@@ -82,9 +82,9 @@ app.get('/setup-2fa', async (req, res) => {
         }
     }
 
-    const qrCodeUrl = await qrcode.toDataURL(secret.otpauth_url);
+    const qrSvg = await qrcode.toString(secret.otpauth_url, { type: 'svg' });
     const html = fs.readFileSync(__dirname + '/setup.html', 'utf8')
-                .replace('{{QR_IMG}}', qrCodeUrl)
+                .replace('{{QR_SVG}}', qrSvg)
                 .replace('{{SECRET_KEY}}', secret.base32);
     res.send(html);
 });

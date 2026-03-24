@@ -100,7 +100,7 @@
     <div class="box">
         <h2>Secured Sign-In Setup (Admin)</h2>
         <div class="inst">
-            <b>1.</b> Scan this QR code with your Duo Mobile application.
+            <b>1.</b> Scan this QR code with an Authenticator app (Duo, Google Authenticator, Authy).
         </div>
          <div class="qr-wrapper">
              <div class="qr-container">
@@ -108,14 +108,16 @@
              </div>
          </div>
         <div class="inst">
-            <b>2.</b> Copy and paste the secret key below into your Railway Variables panel under the relevant slot:<br><br>
+            <b>2.</b> 💡 No camera? Enter this <b>Setup Key</b> manually into your Authenticator app:<br>
+            <div class="code" style="margin-top: 0.5rem; color: #00f5ff;">{{SECRET_KEY}}</div><br>
+            
+            <b>3.</b> Double-check your setup: store this variable in Railway panel just in case:
             <ul style="margin: 0.5rem 0; padding-left: 1.2rem; color: #fff;">
                 <li><code>TWO_FACTOR_SECRET</code> (Slot 1)</li>
                 <li><code>TWO_FACTOR_SECRET_2</code> (Slot 2)</li>
                 <li><code>TWO_FACTOR_SECRET_3</code> (Slot 3)</li>
             </ul>
         </div>
-        <div class="code" id="secret">{{SECRET_KEY}}</div>
     </div>
 </body>
 </html>
